@@ -1,13 +1,15 @@
-/** @typedef {'standard'|'extra'|'all'} RegulationFormat */
+/** @typedef {'standard'|'extra'|'special'|'all'} RegulationFormat */
 
 import { formatCardName } from "./cardText.js";
+
+export const REGULATION_MARKS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
 /**
  * @param {object[]} entries
  */
 export function buildBanIndex(entries) {
   /** @type {Record<string, Set<number>>} */
-  const byFormat = { standard: new Set(), extra: new Set() };
+  const byFormat = { standard: new Set(), extra: new Set(), special: new Set() };
   /** @type {Map<string, object>} */
   const details = new Map();
 
@@ -30,9 +32,17 @@ export function buildBanIndex(entries) {
  * @param {object} config
  */
 export function isBanned(card, format, config) {
-  if (format === "all") return false;
   const cardId = Number(card.card_id);
   if (!cardId) return false;
+
+  if (config.customBanIds instanceof Set && config.customBanIds.has(cardId)) {
+    return true;
+  }
+
+  if (format === "all" || format === "special") {
+    return false;
+  }
+
   const bans = config.bannedByFormat?.[format];
   return bans ? bans.has(cardId) : false;
 }
@@ -43,8 +53,21 @@ export function isBanned(card, format, config) {
  * @param {object} config
  */
 export function getBanEntry(card, format, config) {
-  if (format === "all") return null;
   const cardId = Number(card.card_id);
+  if (!cardId) return null;
+
+  if (config.customBanIds instanceof Set && config.customBanIds.has(cardId)) {
+    const name = config.customBanNames?.get?.(cardId);
+    return {
+      card_id: cardId,
+      name: name || "",
+      note: config.customBanListName
+        ? `リスト: ${config.customBanListName}`
+        : "禁止リスト",
+    };
+  }
+
+  if (format === "all" || format === "special") return null;
   return config.banDetails?.get(`${format}:${cardId}`) || null;
 }
 
@@ -102,6 +125,15 @@ export function getFormatConfig(config, format) {
   if (format === "all") {
     return formats.all || { label: "すべて", marks: [] };
   }
+  if (format === "special") {
+    return (
+      formats.special || {
+        label: "特殊",
+        marks: REGULATION_MARKS,
+        note: "レギュマークを個別指定",
+      }
+    );
+  }
   return (
     formats.standard || {
       label: "スタンダード",
@@ -143,7 +175,9 @@ export function inferCardKind(card, config) {
  * @param {object} config
  */
 export function isLegalInFormat(card, format, config) {
-  if (format === "all") return true;
+  if (format === "all") {
+    return !isBanned(card, format, config);
+  }
 
   const enriched = enrichCard(card, config);
   if (isBanned(enriched, format, config)) return false;
@@ -152,6 +186,14 @@ export function isLegalInFormat(card, format, config) {
   const name = formatCardName(enriched.name || "");
 
   if (kind === "basic_energy") return true;
+
+  if (format === "special") {
+    const allowed = config.specialMarks instanceof Set
+      ? config.specialMarks
+      : new Set(getFormatConfig(config, "special").marks || []);
+    const mark = enriched.regulation_mark || "";
+    return Boolean(mark && allowed.has(mark));
+  }
 
   const official = isOfficialFormatLegal(enriched, format, config);
   if (official !== null) {
@@ -185,7 +227,9 @@ export function isLegalInFormat(card, format, config) {
  * @param {object} config
  */
 export function legalityLabel(card, format, config) {
-  if (format === "all") return null;
+  if (format === "all" && !(config.customBanIds instanceof Set && config.customBanIds.size)) {
+    return null;
+  }
   const enriched = enrichCard(card, config);
 
   if (isBanned(enriched, format, config)) {
@@ -193,9 +237,18 @@ export function legalityLabel(card, format, config) {
     return entry?.note ? `禁止: ${entry.note}` : "禁止";
   }
 
-  const mark = enriched.regulation_mark || "";
-  const fmt = getFormatConfig(config, format);
+  if (format === "all") return null;
 
+  const mark = enriched.regulation_mark || "";
+  if (format === "special") {
+    const allowed = config.specialMarks instanceof Set
+      ? config.specialMarks
+      : new Set(getFormatConfig(config, "special").marks || []);
+    if (mark && allowed.has(mark)) return `レギュ ${mark}`;
+    return null;
+  }
+
+  const fmt = getFormatConfig(config, format);
   if (mark && (fmt.marks || []).includes(mark)) {
     return `レギュ ${mark}`;
   }
@@ -209,7 +262,12 @@ export function legalityLabel(card, format, config) {
  * @param {object} config
  */
 export function collectRegulationWarnings(deck, format, config) {
-  if (format === "all") return [];
+  if (
+    format === "all" &&
+    !(config.customBanIds instanceof Set && config.customBanIds.size)
+  ) {
+    return [];
+  }
 
   const warnings = [];
   for (const { card, qty } of deck.values()) {
@@ -222,6 +280,7 @@ export function collectRegulationWarnings(deck, format, config) {
       );
       continue;
     }
+    if (format === "all") continue;
     if (!isLegalInFormat(card, format, config)) {
       warnings.push(`「${displayName}」は${getFormatConfig(config, format).label}で使用不可`);
     }

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>禁止カード管理 - ポケカ デッキビルダー</title>
-  <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=2">
+  <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=9">
 </head>
 <body>
   <header class="header">
@@ -67,14 +67,33 @@
 
     <section class="panel admin-panel">
       <div class="admin-list-header">
-        <h2>禁止リスト</h2>
+        <h2>禁止リスト（レギュ別）</h2>
         <p id="save-status" class="status admin-save-status"></p>
       </div>
       <ul id="ban-list" class="card-list"></ul>
       <p id="ban-empty" class="empty">禁止カードはまだありません</p>
     </section>
+
+    <section class="panel admin-panel admin-panel-wide">
+      <div class="admin-list-header">
+        <h2>禁止リストファイル</h2>
+        <p id="file-save-status" class="status admin-save-status"></p>
+      </div>
+      <p class="deck-code-help">
+        テキスト形式（1行: <code>card_id</code> または <code>card_id&#9;名前</code>）。デッキビルダーの「禁止リスト」から選択できます。
+      </p>
+      <div class="admin-toolbar">
+        <label for="ban-file-select">リスト</label>
+        <select id="ban-file-select"></select>
+        <input id="ban-file-new-name" type="text" class="note-input ban-file-name" placeholder="新規名（英数字）" >
+        <button id="ban-file-create" type="button" class="btn btn-ghost btn-sm">新規作成</button>
+        <button id="ban-file-save" type="button" class="btn btn-primary btn-sm">保存</button>
+        <button id="ban-file-delete" type="button" class="btn btn-ghost btn-sm">削除</button>
+      </div>
+      <textarea id="ban-file-text" class="ban-file-text" rows="14" spellcheck="false" placeholder="# card_id&#9;name"></textarea>
+    </section>
   </main>
 
-  <script type="module" src="__BASE_PATH__/js/admin.js?v=6"></script>
+  <script type="module" src="__BASE_PATH__/js/admin.js?v=7"></script>
 </body>
 </html>

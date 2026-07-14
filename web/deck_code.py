@@ -36,6 +36,7 @@ SECTION_TO_FIELD = {
 FORMAT_TO_REGULATION = {
     "standard": "STD",
     "extra": "H",
+    "special": "ALL",
     "all": "ALL",
 }
 

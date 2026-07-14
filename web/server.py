@@ -18,6 +18,12 @@ from threading import Lock
 from urllib.parse import parse_qs, urlparse
 
 from card_meta import parse_card_meta_html
+from ban_lists import (
+    delete_ban_list,
+    list_ban_lists,
+    load_ban_list,
+    save_ban_list,
+)
 from deck_code import export_deck_code, resolve_deck_import
 
 ROOT = Path(__file__).resolve().parent
@@ -474,6 +480,9 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/api/deck-import":
             self._serve_deck_import(parse_qs(parsed.query))
             return
+        if path == "/api/ban-lists":
+            self._serve_ban_lists(parse_qs(parsed.query))
+            return
         if path.startswith("/data/"):
             self._serve_data_file(path[len("/data/") :])
             return
@@ -505,6 +514,12 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if path == "/api/deck-export":
             self._export_deck_code()
+            return
+        if path == "/api/ban-lists":
+            self._save_ban_list()
+            return
+        if path == "/api/ban-lists/delete":
+            self._delete_ban_list()
             return
         self.send_error(404, "Not found")
 
@@ -737,7 +752,7 @@ class Handler(SimpleHTTPRequestHandler):
             return
 
         fmt = str(body.get("format") or "standard").strip()
-        if fmt not in ("standard", "extra", "all"):
+        if fmt not in ("standard", "extra", "special", "all"):
             fmt = "standard"
 
         cards = body.get("cards")
@@ -764,6 +779,49 @@ class Handler(SimpleHTTPRequestHandler):
         result = export_deck_code(cleaned, fmt)
         status = 200 if "error" not in result else 400
         self._write_json(status, result)
+
+    def _serve_ban_lists(self, query: dict[str, list[str]]) -> None:
+        name = (query.get("name", [""])[0] or "").strip()
+        if name:
+            loaded = load_ban_list(name)
+            if not loaded:
+                self._write_json(404, {"error": "not_found", "message": "禁止リストが見つかりません。"})
+                return
+            self._write_json(200, loaded)
+            return
+        self._write_json(200, {"lists": list_ban_lists()})
+
+    def _save_ban_list(self) -> None:
+        if not self._require_admin():
+            return
+        body = self._read_json_body()
+        if not isinstance(body, dict):
+            self._write_json(400, {"error": "invalid_body", "message": "不正なリクエストです。"})
+            return
+        name = str(body.get("name") or "").strip()
+        text = str(body.get("text") or "")
+        if body.get("entries") and not text:
+            text = "\n".join(
+                f"{int(e.get('card_id', 0))}\t{e.get('name') or ''}"
+                for e in body["entries"]
+                if isinstance(e, dict) and int(e.get("card_id", 0)) > 0
+            )
+        try:
+            saved = save_ban_list(name, text)
+        except ValueError:
+            self._write_json(400, {"error": "invalid_name", "message": "リスト名が不正です。"})
+            return
+        self._write_json(200, saved)
+
+    def _delete_ban_list(self) -> None:
+        if not self._require_admin():
+            return
+        body = self._read_json_body()
+        name = str((body or {}).get("name") or "").strip() if isinstance(body, dict) else ""
+        if not delete_ban_list(name):
+            self._write_json(404, {"error": "not_found", "message": "禁止リストが見つかりません。"})
+            return
+        self._write_json(200, {"deleted": name})
 
     def _serve_deck_import(self, query: dict[str, list[str]]) -> None:
         code = (query.get("code", [""])[0] or "").strip()
@@ -802,6 +860,19 @@ class Handler(SimpleHTTPRequestHandler):
 
         q = (query.get("q", [""])[0] or "").strip().casefold()
         fmt = (query.get("format", ["standard"])[0] or "standard").strip()
+        marks_raw = (query.get("marks", [""])[0] or "").strip()
+        special_marks = {
+            part.strip().upper()
+            for part in marks_raw.split(",")
+            if part.strip()
+        }
+        ban_list_name = (query.get("ban_list", [""])[0] or "").strip()
+        custom_ban_ids: set[int] = set()
+        if ban_list_name:
+            loaded = load_ban_list(ban_list_name)
+            if loaded:
+                custom_ban_ids = {int(e["card_id"]) for e in loaded["entries"]}
+
         limit_raw = int(query.get("limit", ["50"])[0] or 50)
         limit = limit_raw if limit_raw in (10, 50, 100) else 50
         page = max(int(query.get("page", ["1"])[0] or 1), 1)
@@ -822,11 +893,24 @@ class Handler(SimpleHTTPRequestHandler):
             results = []
 
         config = load_regulation_config()
-        if fmt != "all":
+        if fmt == "special":
+            results = [
+                card
+                for card in results
+                if self._is_legal_special(card, special_marks, custom_ban_ids)
+            ]
+        elif fmt != "all":
             results = [
                 card
                 for card in results
                 if self._is_legal(card, fmt, config)
+                and int(card.get("card_id", 0)) not in custom_ban_ids
+            ]
+        elif custom_ban_ids:
+            results = [
+                card
+                for card in results
+                if int(card.get("card_id", 0)) not in custom_ban_ids
             ]
 
         total = len(results)
@@ -868,6 +952,17 @@ class Handler(SimpleHTTPRequestHandler):
             return (1, 0, len(name), name)
         pos = name.find(q)
         return (2, pos, len(name), name)
+
+    @staticmethod
+    def _is_legal_special(card: dict, marks: set[str], custom_ban_ids: set[int]) -> bool:
+        card_id = int(card.get("card_id", 0))
+        if card_id in custom_ban_ids:
+            return False
+        name = normalize_card_name(card.get("name", ""))
+        if name.startswith("基本") and "エネルギー" in name:
+            return True
+        mark = str(card.get("regulation_mark") or "").strip().upper()
+        return bool(mark and mark in marks)
 
     @staticmethod
     def _is_legal(card: dict, fmt: str, config: dict) -> bool:

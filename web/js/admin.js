@@ -25,6 +25,13 @@ const banEmpty = document.getElementById("ban-empty");
 const banCount = document.getElementById("ban-count");
 const banNote = document.getElementById("ban-note");
 const saveStatus = document.getElementById("save-status");
+const banFileSelect = document.getElementById("ban-file-select");
+const banFileNewName = document.getElementById("ban-file-new-name");
+const banFileCreateBtn = document.getElementById("ban-file-create");
+const banFileSaveBtn = document.getElementById("ban-file-save");
+const banFileDeleteBtn = document.getElementById("ban-file-delete");
+const banFileText = document.getElementById("ban-file-text");
+const fileSaveStatus = document.getElementById("file-save-status");
 
 /** @type {{ entries: object[], updated: string|null }} */
 let banData = { entries: [], updated: null };
@@ -161,6 +168,7 @@ async function enterAdmin() {
   saveStatus.textContent = banData.updated
     ? `最終更新: ${new Date(banData.updated).toLocaleString("ja-JP")}`
     : "";
+  await loadBanFiles();
 }
 
 async function init() {
@@ -438,6 +446,115 @@ searchInput.addEventListener("input", () => {
   if (!isAuthenticated) return;
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => runSearch(searchInput.value), 250);
+});
+
+async function loadBanFiles() {
+  if (!banFileSelect) return;
+  const { res, data } = await fetchJson(appUrl("/api/ban-lists"));
+  if (!res.ok) return;
+  const lists = data.lists || [];
+  const previous = banFileSelect.value;
+  banFileSelect.innerHTML = "";
+  for (const item of lists) {
+    const opt = document.createElement("option");
+    opt.value = item.name;
+    opt.textContent = `${item.name}（${item.count}）`;
+    banFileSelect.appendChild(opt);
+  }
+  if (!lists.length) {
+    banFileText.value = "";
+    fileSaveStatus.textContent = "リストがありません。新規作成してください。";
+    return;
+  }
+  if (previous && lists.some((item) => item.name === previous)) {
+    banFileSelect.value = previous;
+  }
+  await loadSelectedBanFile();
+}
+
+async function loadSelectedBanFile() {
+  const name = banFileSelect.value;
+  if (!name) return;
+  const params = new URLSearchParams({ name });
+  const { res, data } = await fetchJson(appUrl(`/api/ban-lists?${params}`));
+  if (!res.ok) {
+    fileSaveStatus.textContent = data.message || "読み込み失敗";
+    return;
+  }
+  banFileText.value = data.text || "";
+  fileSaveStatus.textContent = `${data.count || 0}件`;
+}
+
+banFileSelect?.addEventListener("change", () => {
+  if (!isAuthenticated) return;
+  loadSelectedBanFile();
+});
+
+banFileSaveBtn?.addEventListener("click", async () => {
+  if (!isAuthenticated) return;
+  const name = banFileSelect.value;
+  if (!name) {
+    fileSaveStatus.textContent = "リストを選択してください";
+    return;
+  }
+  fileSaveStatus.textContent = "保存中...";
+  const { res, data } = await fetchJson(appUrl("/api/ban-lists"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, text: banFileText.value }),
+  });
+  if (!res.ok) {
+    fileSaveStatus.textContent = data.message || "保存失敗";
+    return;
+  }
+  banFileText.value = data.text || banFileText.value;
+  fileSaveStatus.textContent = `保存しました（${data.count || 0}件）`;
+  await loadBanFiles();
+});
+
+banFileCreateBtn?.addEventListener("click", async () => {
+  if (!isAuthenticated) return;
+  const name = (banFileNewName.value || "").trim();
+  if (!name) {
+    fileSaveStatus.textContent = "新規名を入力してください";
+    return;
+  }
+  fileSaveStatus.textContent = "作成中...";
+  const { res, data } = await fetchJson(appUrl("/api/ban-lists"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name,
+      text: "# new ban list\n# card_id\\tname\n",
+    }),
+  });
+  if (!res.ok) {
+    fileSaveStatus.textContent = data.message || "作成失敗";
+    return;
+  }
+  banFileNewName.value = "";
+  await loadBanFiles();
+  banFileSelect.value = name;
+  await loadSelectedBanFile();
+  fileSaveStatus.textContent = `「${name}」を作成しました`;
+});
+
+banFileDeleteBtn?.addEventListener("click", async () => {
+  if (!isAuthenticated) return;
+  const name = banFileSelect.value;
+  if (!name) return;
+  if (!confirm(`禁止リスト「${name}」を削除しますか？`)) return;
+  const { res, data } = await fetchJson(appUrl("/api/ban-lists/delete"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) {
+    fileSaveStatus.textContent = data.message || "削除失敗";
+    return;
+  }
+  await loadBanFiles();
+  fileSaveStatus.textContent = `「${name}」を削除しました`;
 });
 
 init();

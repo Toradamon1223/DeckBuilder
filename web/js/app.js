@@ -18,6 +18,7 @@ import {
   getFormatConfig,
   isLegalInFormat,
   legalityLabel,
+  REGULATION_MARKS,
 } from "./regulation.js";
 
 import {
@@ -34,14 +35,21 @@ const STORAGE_KEY = "pokeca-deck-builder-v2";
 const LEGACY_STORAGE_KEY = "pokeca-deck-builder-v1";
 const SEARCH_LIMIT_KEY = "pokeca-deck-search-limit-v1";
 const MOBILE_VIEW_KEY = "pokeca-mobile-view-v1";
+const SPECIAL_MARKS_KEY = "pokeca-special-marks-v1";
+const BAN_LIST_KEY = "pokeca-ban-list-v1";
 const MOBILE_BREAKPOINT = "(max-width: 768px)";
-const VALID_FORMATS = ["standard", "extra", "all"];
+const VALID_FORMATS = ["standard", "extra", "special", "all"];
 const VALID_SEARCH_LIMITS = [10, 50, 100];
 
 const layoutEl = document.querySelector(".layout");
 const mobileViewSwitcher = document.getElementById("mobile-view-switcher");
 const mobileDeckBadge = document.getElementById("mobile-deck-badge");
 const mobileMq = window.matchMedia(MOBILE_BREAKPOINT);
+const formatSelect = document.getElementById("format-select");
+const formatNote = document.getElementById("format-note");
+const banListSelect = document.getElementById("ban-list-select");
+const specialMarksPanel = document.getElementById("special-marks-panel");
+const specialMarksEl = document.getElementById("special-marks");
 
 const searchInput = document.getElementById("search-input");
 const searchStatus = document.getElementById("search-status");
@@ -53,8 +61,6 @@ const deckCount = document.getElementById("deck-count");
 const deckWarning = document.getElementById("deck-warning");
 const deckEmpty = document.getElementById("deck-empty");
 const clearDeckBtn = document.getElementById("clear-deck");
-const formatSelect = document.getElementById("format-select");
-const formatNote = document.getElementById("format-note");
 const deckCodeInput = document.getElementById("deck-code-input");
 const deckCodeImportBtn = document.getElementById("deck-code-import");
 const deckCodeStatus = document.getElementById("deck-code-status");
@@ -72,11 +78,36 @@ let deckOrder = deckState.deckOrder;
 let regulationConfig = null;
 /** @type {{ entries: object[], updated: string|null }} */
 let banData = { entries: [], updated: null };
+/** @type {Set<string>} */
+let specialMarks = loadSpecialMarks();
+/** @type {string} */
+let selectedBanList = localStorage.getItem(BAN_LIST_KEY) || "";
+/** @type {Map<number, string>} */
+let customBanNames = new Map();
+/** @type {Set<number>} */
+let customBanIds = new Set();
 let searchTimer = null;
 let searchPage = 1;
 let searchLimit = loadSearchLimit();
 let lastSearchQuery = "";
 let currentFormat = "standard";
+
+function loadSpecialMarks() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SPECIAL_MARKS_KEY) || "null");
+    if (Array.isArray(raw)) {
+      const marks = raw.filter((m) => REGULATION_MARKS.includes(m));
+      if (marks.length) return new Set(marks);
+    }
+  } catch {
+    // ignore
+  }
+  return new Set(["D", "E", "F", "G", "H", "I", "J"]);
+}
+
+function saveSpecialMarks() {
+  localStorage.setItem(SPECIAL_MARKS_KEY, JSON.stringify([...specialMarks]));
+}
 
 function loadSearchLimit() {
   const stored = Number(localStorage.getItem(SEARCH_LIMIT_KEY));
@@ -174,28 +205,37 @@ async function ensureCardMeta(card) {
 
 function getRegConfig() {
   const banIndex = buildBanIndex(banData.entries);
-  if (!regulationConfig) {
-    return {
-      formats: {
-        standard: { label: "スタンダード", marks: ["H", "I", "J"] },
-        all: { label: "すべて", marks: [] },
-      },
-      trainerWhitelist: new Set(),
-      setRegulationMap: {},
-      cardRegulationMarks: {},
-      formatLegal: { standard: {}, extra: {} },
-      bannedByFormat: banIndex.byFormat,
-      banDetails: banIndex.details,
-    };
-  }
+  const base = regulationConfig
+    ? {
+        ...regulationConfig,
+        trainerWhitelist: new Set(regulationConfig.trainerWhitelist || []),
+        setRegulationMap: regulationConfig.setRegulationMap || {},
+        cardRegulationMarks: regulationConfig.cardRegulationMarks || {},
+        formatLegal: regulationConfig.formatLegal || { standard: {}, extra: {} },
+        bannedByFormat: banIndex.byFormat,
+        banDetails: banIndex.details,
+      }
+    : {
+        formats: {
+          standard: { label: "スタンダード", marks: ["H", "I", "J"] },
+          extra: { label: "エクストラ", marks: REGULATION_MARKS },
+          special: { label: "特殊", marks: REGULATION_MARKS },
+          all: { label: "すべて", marks: [] },
+        },
+        trainerWhitelist: new Set(),
+        setRegulationMap: {},
+        cardRegulationMarks: {},
+        formatLegal: { standard: {}, extra: {} },
+        bannedByFormat: banIndex.byFormat,
+        banDetails: banIndex.details,
+      };
+
   return {
-    ...regulationConfig,
-    trainerWhitelist: new Set(regulationConfig.trainerWhitelist || []),
-    setRegulationMap: regulationConfig.setRegulationMap || {},
-    cardRegulationMarks: regulationConfig.cardRegulationMarks || {},
-    formatLegal: regulationConfig.formatLegal || { standard: {}, extra: {} },
-    bannedByFormat: banIndex.byFormat,
-    banDetails: banIndex.details,
+    ...base,
+    specialMarks,
+    customBanIds,
+    customBanNames,
+    customBanListName: selectedBanList || "",
   };
 }
 
@@ -706,6 +746,12 @@ async function runSearch(query, options = {}) {
       page: String(searchPage),
       format: currentFormat,
     });
+    if (currentFormat === "special") {
+      params.set("marks", [...specialMarks].join(","));
+    }
+    if (selectedBanList) {
+      params.set("ban_list", selectedBanList);
+    }
     const res = await fetch(appUrl(`/api/cards?${params}`));
     if (!res.ok) throw new Error("search failed");
     const data = await res.json();
@@ -721,7 +767,88 @@ async function runSearch(query, options = {}) {
 function updateFormatNote() {
   const config = getRegConfig();
   const fmt = getFormatConfig(config, currentFormat);
-  formatNote.textContent = fmt.note || "";
+  if (currentFormat === "special") {
+    const marks = [...specialMarks].sort().join("・") || "未選択";
+    formatNote.textContent = `${fmt.note || ""}（現在: ${marks}）`;
+  } else {
+    formatNote.textContent = fmt.note || "";
+  }
+  specialMarksPanel?.classList.toggle("hidden", currentFormat !== "special");
+}
+
+function renderSpecialMarks() {
+  if (!specialMarksEl) return;
+  specialMarksEl.innerHTML = "";
+  for (const mark of REGULATION_MARKS) {
+    const label = document.createElement("label");
+    label.className = "special-mark";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = mark;
+    input.checked = specialMarks.has(mark);
+    input.addEventListener("change", () => {
+      if (input.checked) specialMarks.add(mark);
+      else specialMarks.delete(mark);
+      saveSpecialMarks();
+      updateFormatNote();
+      renderDeck();
+      if (searchInput.value.trim()) runSearch(searchInput.value);
+    });
+    label.append(input, document.createTextNode(mark));
+    specialMarksEl.appendChild(label);
+  }
+}
+
+async function loadBanListOptions() {
+  if (!banListSelect) return;
+  try {
+    const res = await fetch(appUrl("/api/ban-lists"));
+    if (!res.ok) return;
+    const data = await res.json();
+    const lists = data.lists || [];
+    banListSelect.innerHTML = `<option value="">なし</option>`;
+    for (const item of lists) {
+      const opt = document.createElement("option");
+      opt.value = item.name;
+      opt.textContent = `${item.name}（${item.count}）`;
+      banListSelect.appendChild(opt);
+    }
+    if (selectedBanList && [...banListSelect.options].some((o) => o.value === selectedBanList)) {
+      banListSelect.value = selectedBanList;
+    } else {
+      selectedBanList = "";
+      banListSelect.value = "";
+    }
+  } catch {
+    // ignore
+  }
+}
+
+async function applySelectedBanList() {
+  customBanIds = new Set();
+  customBanNames = new Map();
+  if (!selectedBanList) {
+    renderDeck();
+    if (searchInput.value.trim()) runSearch(searchInput.value);
+    return;
+  }
+  try {
+    const params = new URLSearchParams({ name: selectedBanList });
+    const res = await fetch(appUrl(`/api/ban-lists?${params}`));
+    if (!res.ok) throw new Error("ban list failed");
+    const data = await res.json();
+    for (const entry of data.entries || []) {
+      const id = Number(entry.card_id);
+      if (!id) continue;
+      customBanIds.add(id);
+      if (entry.name) customBanNames.set(id, entry.name);
+    }
+  } catch {
+    customBanIds = new Set();
+    customBanNames = new Map();
+  }
+  renderDeck();
+  if (searchInput.value.trim()) runSearch(searchInput.value);
 }
 
 function escapeHtml(text) {
@@ -813,9 +940,12 @@ async function hydrateDeckMeta() {
 async function init() {
   syncMobileLayout();
   mobileMq.addEventListener("change", syncMobileLayout);
+  renderSpecialMarks();
 
   await loadRegulationConfig();
   await loadBannedCards();
+  await loadBanListOptions();
+  await applySelectedBanList();
 
   formatSelect.value = "standard";
   currentFormat = "standard";
@@ -835,6 +965,12 @@ formatSelect.addEventListener("change", () => {
   updateFormatNote();
   renderDeck();
   if (searchInput.value.trim()) runSearch(searchInput.value);
+});
+
+banListSelect?.addEventListener("change", () => {
+  selectedBanList = banListSelect.value || "";
+  localStorage.setItem(BAN_LIST_KEY, selectedBanList);
+  applySelectedBanList();
 });
 
 searchLimitSelect.addEventListener("change", () => {

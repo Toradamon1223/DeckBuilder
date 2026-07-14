@@ -74,6 +74,53 @@ body {
   flex: 1 1 240px;
 }
 
+.special-marks-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+  margin-top: 0.65rem;
+}
+
+.special-marks-panel.hidden {
+  display: none;
+}
+
+.special-marks-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.special-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.special-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: #0f1724;
+  color: var(--muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.special-mark input {
+  margin: 0;
+}
+
+.special-mark:has(input:checked) {
+  color: var(--text);
+  border-color: var(--accent);
+  background: rgba(79, 140, 255, 0.12);
+}
+
 .badge {
   display: inline-block;
   margin-left: 0.35rem;
@@ -161,6 +208,30 @@ body {
   padding: 1rem;
   max-width: 1400px;
   margin: 0 auto;
+}
+
+.admin-panel-wide {
+  grid-column: 1 / -1;
+  min-height: auto;
+}
+
+.ban-file-name {
+  max-width: 12rem;
+  margin-top: 0;
+}
+
+.ban-file-text {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  background: #0f1724;
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  resize: vertical;
 }
 
 @media (max-width: 900px) {

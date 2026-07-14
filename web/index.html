@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ポケカ デッキビルダー</title>
-  <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=8">
+  <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=9">
 </head>
 <body>
   <header class="header">
@@ -15,9 +15,18 @@
       <select id="format-select">
         <option value="standard" selected>スタンダード</option>
         <option value="extra">エクストラ</option>
+        <option value="special">特殊</option>
         <option value="all">すべて</option>
       </select>
+      <label for="ban-list-select">禁止リスト</label>
+      <select id="ban-list-select">
+        <option value="">なし</option>
+      </select>
       <p id="format-note" class="format-note"></p>
+    </div>
+    <div id="special-marks-panel" class="special-marks-panel hidden" aria-label="レギュマーク選択">
+      <span class="special-marks-label">使用マーク</span>
+      <div id="special-marks" class="special-marks"></div>
     </div>
   </header>
 
@@ -103,6 +112,6 @@
     </button>
   </nav>
 
-  <script type="module" src="__BASE_PATH__/js/app.js?v=12"></script>
+  <script type="module" src="__BASE_PATH__/js/app.js?v=13"></script>
 </body>
 </html>
