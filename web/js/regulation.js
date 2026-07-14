@@ -79,9 +79,14 @@ export function getCardRegulationMark(card, config) {
   const cid = String(card.card_id);
   const marks = config.cardRegulationMarks || {};
   if (Object.prototype.hasOwnProperty.call(marks, cid)) {
-    return marks[cid] ?? "";
+    const mark = marks[cid];
+    if (mark) return mark;
   }
-  return card.regulation_mark ?? "";
+  if (card.regulation_mark) return card.regulation_mark;
+  const setCode = card.set_code || "";
+  const map = config.setRegulationMap || {};
+  if (setCode && map[setCode]) return map[setCode];
+  return "";
 }
 
 /**
@@ -188,11 +193,33 @@ export function isLegalInFormat(card, format, config) {
   if (kind === "basic_energy") return true;
 
   if (format === "special") {
-    const allowed = config.specialMarks instanceof Set
-      ? config.specialMarks
-      : new Set(getFormatConfig(config, "special").marks || []);
+    const allowed =
+      config.specialMarks instanceof Set
+        ? config.specialMarks
+        : new Set(getFormatConfig(config, "special").marks || []);
     const mark = enriched.regulation_mark || "";
-    return Boolean(mark && allowed.has(mark));
+    if (mark && allowed.has(mark)) return true;
+
+    // 公式の同名再録トレーナー等（ボスの指令など）
+    if (kind !== "pokemon" && config.trainerWhitelist.has(name)) {
+      return true;
+    }
+
+    // マーク欠損カード向け: 公式スタンダード使用可かつ H/I/J を含む指定なら可
+    if (
+      !mark &&
+      isOfficialFormatLegal(enriched, "standard", config) === true &&
+      ["H", "I", "J"].some((m) => allowed.has(m))
+    ) {
+      return true;
+    }
+
+    // マーク欠損カード向け: 公式エクストラ使用可
+    if (!mark && isOfficialFormatLegal(enriched, "extra", config) === true) {
+      return [...allowed].some((m) => REGULATION_MARKS.includes(m));
+    }
+
+    return false;
   }
 
   const official = isOfficialFormatLegal(enriched, format, config);

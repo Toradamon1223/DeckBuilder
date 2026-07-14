@@ -897,7 +897,7 @@ class Handler(SimpleHTTPRequestHandler):
             results = [
                 card
                 for card in results
-                if self._is_legal_special(card, special_marks, custom_ban_ids)
+                if self._is_legal_special(card, special_marks, custom_ban_ids, config)
             ]
         elif fmt != "all":
             results = [
@@ -954,15 +954,45 @@ class Handler(SimpleHTTPRequestHandler):
         return (2, pos, len(name), name)
 
     @staticmethod
-    def _is_legal_special(card: dict, marks: set[str], custom_ban_ids: set[int]) -> bool:
+    def _resolve_regulation_mark(card: dict, config: dict) -> str:
+        cid = str(card.get("card_id", ""))
+        marks = config.get("cardRegulationMarks") or {}
+        if cid in marks and marks[cid]:
+            return str(marks[cid])
+        mark = str(card.get("regulation_mark") or "").strip()
+        if mark:
+            return mark
+        set_code = str(card.get("set_code") or "").strip()
+        smap = config.get("setRegulationMap") or {}
+        return str(smap.get(set_code) or "").strip()
+
+    @staticmethod
+    def _is_legal_special(card: dict, marks: set[str], custom_ban_ids: set[int], config: dict | None = None) -> bool:
         card_id = int(card.get("card_id", 0))
         if card_id in custom_ban_ids:
             return False
         name = normalize_card_name(card.get("name", ""))
         if name.startswith("基本") and "エネルギー" in name:
             return True
-        mark = str(card.get("regulation_mark") or "").strip().upper()
-        return bool(mark and mark in marks)
+
+        config = config or {}
+        mark = Handler._resolve_regulation_mark(card, config).upper()
+        if mark and mark in marks:
+            return True
+
+        whitelist = set(config.get("trainerWhitelist", []))
+        if name in whitelist:
+            return True
+
+        if not mark:
+            official_std = is_official_format_legal(card_id, "standard", config)
+            if official_std and marks.intersection({"H", "I", "J"}):
+                return True
+            official_extra = is_official_format_legal(card_id, "extra", config)
+            if official_extra and marks.intersection(set("ABCDEFGHIJ")):
+                return True
+
+        return False
 
     @staticmethod
     def _is_legal(card: dict, fmt: str, config: dict) -> bool:
