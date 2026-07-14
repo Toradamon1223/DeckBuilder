@@ -265,33 +265,51 @@ function renderSearchResults(data) {
     const li = document.createElement("li");
     li.className = "card-item";
 
-    const thumb = createCardThumb(card);
-    if (thumb) li.appendChild(thumb);
-
-    const body = document.createElement("div");
-    body.className = "card-item-body";
-
-    const meta = document.createElement("div");
-    meta.className = "card-meta";
-    meta.innerHTML = `
-      <div class="card-name">${escapeHtml(formatCardName(card.name))}${legalityBadge(card)}</div>
-      <div class="card-detail">${escapeHtml(formatCardDetail(card))}</div>
-    `;
-
-    const addBtn = document.createElement("button");
-    addBtn.type = "button";
-    addBtn.className = "btn btn-primary";
-    addBtn.textContent = "追加";
-
     const legal = isLegalInFormat(card, currentFormat, config);
     const qtyCheck = canChangeQty(deck, card, 1);
-    addBtn.disabled = !legal || !qtyCheck.ok;
-    if (!legal) addBtn.title = `${getFormatConfig(config, currentFormat).label}では使用不可`;
-    else if (!qtyCheck.ok) addBtn.title = qtyCheck.reason;
-    addBtn.addEventListener("click", () => addCard(card));
+    const canAdd = legal && qtyCheck.ok;
+    let blockedReason = "";
+    if (!legal) {
+      blockedReason = `${getFormatConfig(config, currentFormat).label}では使用不可`;
+    } else if (!qtyCheck.ok) {
+      blockedReason = qtyCheck.reason;
+    }
 
-    body.append(meta, addBtn);
-    li.append(body);
+    if (!canAdd) {
+      li.classList.add("card-item-disabled");
+      li.title = blockedReason;
+    } else {
+      li.classList.add("card-item-clickable");
+      li.title = "タップしてデッキに追加";
+    }
+
+    const thumb = createCardThumb(card);
+    if (thumb) {
+      thumb.classList.add("search-thumb");
+      li.appendChild(thumb);
+    }
+
+    const name = document.createElement("div");
+    name.className = "card-name search-card-name";
+    name.innerHTML = `${escapeHtml(formatCardName(card.name))}${legalityBadge(card)}`;
+    li.appendChild(name);
+
+    const setLabel = formatDeckSetLabel(card);
+    if (setLabel) {
+      const detail = document.createElement("div");
+      detail.className = "card-detail search-card-set";
+      detail.textContent = setLabel;
+      li.appendChild(detail);
+    }
+
+    li.addEventListener("click", () => {
+      if (!canAdd) {
+        alert(blockedReason || "追加できません");
+        return;
+      }
+      addCard(card);
+    });
+
     searchResults.appendChild(li);
   }
 

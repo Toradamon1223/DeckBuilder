@@ -464,25 +464,12 @@ body {
   list-style: none;
   margin: 0;
   padding: 0;
-}
-
-.deck-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.55rem;
 }
 
-.card-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.7rem 0.8rem;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius);
-  background: #121a27;
-  margin-bottom: 0.5rem;
-}
-
+.card-item,
 .deck-item {
   display: flex;
   flex-direction: column;
@@ -495,6 +482,25 @@ body {
   margin-bottom: 0;
   text-align: center;
   min-width: 0;
+}
+
+.card-item-clickable {
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.card-item-clickable:hover {
+  border-color: var(--accent);
+  background: #162033;
+}
+
+.card-item-clickable:active {
+  transform: scale(0.98);
+}
+
+.card-item-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .card-item-body {
@@ -515,23 +521,27 @@ body {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
+.search-thumb,
 .deck-thumb {
   width: 72%;
   max-width: 96px;
   margin: 0 auto;
 }
 
+.search-card-name,
 .deck-card-name {
   font-size: 0.78rem;
   line-height: 1.25;
   width: 100%;
 }
 
+.search-card-name .badge,
 .deck-card-name .badge {
   display: inline-block;
   margin: 0.15rem 0 0;
 }
 
+.search-card-set,
 .deck-card-set {
   font-size: 0.72rem;
   margin-top: 0;
@@ -823,46 +833,31 @@ body {
     min-height: 2.5rem;
   }
 
-  .card-item {
-    padding: 0.6rem;
-    gap: 0.55rem;
-  }
-
-  .card-item .card-thumb {
-    width: 44px;
-  }
-
-  .card-item-body {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.55rem;
-  }
-
-  .card-item-body .btn-primary {
-    width: 100%;
-    min-height: 2.5rem;
-  }
-
-  .deck-list {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.4rem;
-  }
-
+  .card-item,
   .deck-item {
     padding: 0.4rem 0.25rem 0.5rem;
   }
 
+  .search-thumb,
   .deck-thumb {
     width: 78%;
     max-width: 88px;
   }
 
+  .search-card-name,
   .deck-card-name {
     font-size: 0.7rem;
   }
 
+  .search-card-set,
   .deck-card-set {
     font-size: 0.65rem;
+  }
+
+  .card-list,
+  .deck-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
   }
 
   .deck-qty-controls .btn-icon {
