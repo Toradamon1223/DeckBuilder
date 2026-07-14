@@ -63,11 +63,6 @@ export function totalCards(deck) {
  * @param {number} delta
  */
 export function canChangeQty(deck, card, delta) {
-  const nextTotal = totalCards(deck) + delta;
-  if (delta > 0 && nextTotal > DECK_SIZE) {
-    return { ok: false, reason: `デッキは${DECK_SIZE}枚までです` };
-  }
-
   const limitType = getLimitType(card);
   const name = getLimitGroup(card);
   const currentNameQty = countByName(deck, name);

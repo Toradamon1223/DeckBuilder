@@ -119,7 +119,7 @@ function updateMobileDeckBadge(total) {
   if (!mobileDeckBadge) return;
   mobileDeckBadge.textContent = String(total);
   mobileDeckBadge.classList.toggle("complete", total === DECK_SIZE);
-  mobileDeckBadge.classList.toggle("over", total > DECK_SIZE);
+  mobileDeckBadge.classList.toggle("incomplete", total > 0 && total !== DECK_SIZE);
 }
 
 function loadDeckState() {
@@ -469,7 +469,7 @@ function renderDeck() {
   const total = totalCards(deck);
   deckCount.textContent = `${total} / ${DECK_SIZE}`;
   deckCount.classList.toggle("complete", total === DECK_SIZE);
-  deckCount.classList.toggle("over", total > DECK_SIZE);
+  deckCount.classList.toggle("incomplete", total > 0 && total !== DECK_SIZE);
   updateMobileDeckBadge(total);
 
   const isComplete = total === DECK_SIZE;
