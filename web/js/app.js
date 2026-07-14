@@ -516,9 +516,6 @@ async function addCard(card) {
   deckOrder = syncDeckOrder(deckOrder, deck);
   renderDeck();
   if (searchInput.value.trim()) runSearch(searchInput.value);
-  if (isMobileLayout()) {
-    setMobileView("deck");
-  }
 }
 
 function changeQty(cardId, delta) {
