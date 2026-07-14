@@ -1,0 +1,2 @@
+# Standard library only (urllib, json, csv, concurrent.futures)
+# No external dependencies required.

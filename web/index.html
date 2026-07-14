@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja" data-base-path="__BASE_PATH__">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ポケカ デッキビルダー</title>
+  <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=5">
+</head>
+<body>
+  <header class="header">
+    <h1>ポケカ デッキビルダー</h1>
+    <p class="subtitle">カード検索 → デッキに追加 → 枚数調整</p>
+    <div class="format-bar">
+      <label for="format-select">レギュレーション</label>
+      <select id="format-select">
+        <option value="standard" selected>スタンダード</option>
+        <option value="extra">エクストラ</option>
+        <option value="all">すべて</option>
+      </select>
+      <p id="format-note" class="format-note"></p>
+    </div>
+  </header>
+
+  <main class="layout view-search">
+    <section class="panel left-panel">
+      <details class="panel-collapse" open>
+        <summary class="panel-collapse-title">カード検索</summary>
+        <div class="panel-collapse-body">
+          <div class="search-box">
+            <input
+              id="search-input"
+              type="search"
+              placeholder="カード名で検索（例: シェイミ, ハイパーボール）"
+              autocomplete="off"
+            >
+          </div>
+          <div class="search-toolbar">
+            <label for="search-limit">表示件数</label>
+            <select id="search-limit">
+              <option value="10">10件</option>
+              <option value="50" selected>50件</option>
+              <option value="100">100件</option>
+            </select>
+          </div>
+          <p id="search-status" class="status">カード名を入力してください</p>
+          <ul id="search-results" class="card-list"></ul>
+          <nav id="search-pagination" class="search-pagination hidden" aria-label="検索結果ページ"></nav>
+        </div>
+      </details>
+
+      <details class="panel-collapse">
+        <summary class="panel-collapse-title">デッキコード入力</summary>
+        <div class="panel-collapse-body">
+          <p class="deck-code-help">
+            ポケモンカード公式サイトのデッキコードを入力すると、デッキリストに読み込みます。
+          </p>
+          <div class="deck-code-box">
+            <input
+              id="deck-code-input"
+              type="text"
+              placeholder="例: bFkVkd-lnUMIE-FV1VfF"
+              autocomplete="off"
+              spellcheck="false"
+            >
+          </div>
+          <div class="deck-code-actions">
+            <button id="deck-code-import" type="button" class="btn btn-primary">デッキを読み込む</button>
+          </div>
+          <p id="deck-code-status" class="status">デッキコードを入力してください</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="panel deck-panel">
+      <div class="deck-header">
+        <h2>デッキ</h2>
+        <div class="deck-summary">
+          <span id="deck-count" class="deck-count">0 / 60</span>
+          <button id="deck-code-export" type="button" class="btn btn-primary btn-sm" disabled>デッキコード表示</button>
+          <button id="clear-deck" type="button" class="btn btn-ghost">全削除</button>
+        </div>
+      </div>
+      <div id="deck-export-panel" class="deck-export-panel hidden">
+        <label for="deck-code-output">デッキコード</label>
+        <div class="deck-export-row">
+          <input id="deck-code-output" type="text" readonly spellcheck="false">
+          <button id="deck-code-copy" type="button" class="btn btn-ghost btn-sm">コピー</button>
+        </div>
+      </div>
+      <p id="deck-warning" class="warning hidden"></p>
+      <div id="deck-list" class="deck-sections"></div>
+      <p id="deck-empty" class="empty">デッキは空です。検索からカードを追加するか、デッキコードを読み込んでください。</p>
+    </section>
+  </main>
+
+  <nav id="mobile-view-switcher" class="mobile-view-switcher" aria-label="画面切替">
+    <button type="button" class="mobile-view-btn active" data-view="search">
+      <span class="mobile-view-label">カード検索</span>
+    </button>
+    <button type="button" class="mobile-view-btn" data-view="deck">
+      <span class="mobile-view-label">デッキ</span>
+      <span id="mobile-deck-badge" class="mobile-deck-badge">0</span>
+    </button>
+  </nav>
+
+  <script type="module" src="__BASE_PATH__/js/app.js?v=8"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+[Unit]
+Description=PCG Deck Builder
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/data/www/PCGDeckBuilder
+Environment=POKECA_BASE_PATH=/DeckBuilder
+Environment=POKECA_COOKIE_SECURE=1
+# Environment=POKECA_ADMIN_PASSWORD=changeme
+ExecStart=/usr/bin/python3 web/server.py --host 127.0.0.1 --port 8080
+Restart=on-failure
+RestartSec=3
+# 書き込みが必要なので適切なユーザに変更してください
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

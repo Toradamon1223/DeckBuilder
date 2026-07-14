@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja" data-base-path="__BASE_PATH__">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>禁止カード管理 - ポケカ デッキビルダー</title>
+  <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=2">
+</head>
+<body>
+  <header class="header">
+    <div class="header-row">
+      <div>
+        <h1>禁止カード管理</h1>
+        <p class="subtitle">レギュレーションごとに使用禁止カードを設定（管理者専用）</p>
+      </div>
+      <div class="header-actions">
+        <button id="logout-btn" type="button" class="btn btn-ghost hidden">ログアウト</button>
+        <a href="__BASE_PATH__/" class="btn btn-ghost">← デッキビルダーへ</a>
+      </div>
+    </div>
+  </header>
+
+  <section id="login-panel" class="panel admin-login">
+    <h2>管理者ログイン</h2>
+    <p id="login-status" class="status">確認中...</p>
+    <form id="login-form" class="admin-login-form hidden">
+      <input
+        id="admin-password"
+        type="password"
+        placeholder="管理者パスワード"
+        autocomplete="current-password"
+        required
+      >
+      <button id="login-submit" type="submit" class="btn btn-primary">ログイン</button>
+    </form>
+  </section>
+
+  <main id="admin-content" class="admin-layout hidden">
+    <section class="panel admin-panel">
+      <div class="admin-toolbar">
+        <label for="admin-format">対象レギュ</label>
+        <select id="admin-format">
+          <option value="standard">スタンダード</option>
+          <option value="extra">エクストラ</option>
+        </select>
+        <span id="ban-count" class="admin-count"></span>
+      </div>
+
+      <h2>カードを追加</h2>
+      <div class="search-box">
+        <input
+          id="admin-search"
+          type="search"
+          placeholder="カード名で検索"
+          autocomplete="off"
+        >
+      </div>
+      <input
+        id="ban-note"
+        type="text"
+        class="note-input"
+        placeholder="禁止理由（任意）例: 公式禁止リスト"
+      >
+      <p id="admin-search-status" class="status">カード名を入力して検索</p>
+      <ul id="admin-search-results" class="card-list"></ul>
+    </section>
+
+    <section class="panel admin-panel">
+      <div class="admin-list-header">
+        <h2>禁止リスト</h2>
+        <p id="save-status" class="status admin-save-status"></p>
+      </div>
+      <ul id="ban-list" class="card-list"></ul>
+      <p id="ban-empty" class="empty">禁止カードはまだありません</p>
+    </section>
+  </main>
+
+  <script type="module" src="__BASE_PATH__/js/admin.js?v=6"></script>
+</body>
+</html>

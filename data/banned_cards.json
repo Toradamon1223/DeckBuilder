@@ -1,0 +1,105 @@
+{
+  "entries": [
+    {
+      "card_id": 38902,
+      "name": "リセットスタンプ",
+      "set_code": "SC2",
+      "number_label": "016/021",
+      "formats": [
+        "extra"
+      ],
+      "note": ""
+    },
+    {
+      "card_id": 38048,
+      "name": "リセットスタンプ",
+      "set_code": "SCS",
+      "number_label": "016/020",
+      "formats": [
+        "extra"
+      ],
+      "note": ""
+    },
+    {
+      "card_id": 38027,
+      "name": "リセットスタンプ",
+      "set_code": "SCS",
+      "number_label": "016/021",
+      "formats": [
+        "extra"
+      ],
+      "note": ""
+    },
+    {
+      "card_id": 38372,
+      "name": "リセットスタンプ",
+      "set_code": "SD",
+      "number_label": "100/127",
+      "formats": [
+        "extra"
+      ],
+      "note": ""
+    },
+    {
+      "card_id": 36586,
+      "name": "リセットスタンプ",
+      "set_code": "SM10a",
+      "number_label": "046/054",
+      "formats": [
+        "extra"
+      ],
+      "note": ""
+    },
+    {
+      "card_id": 37340,
+      "name": "リセットスタンプ",
+      "set_code": "SM12a",
+      "number_label": "136/173",
+      "formats": [
+        "extra"
+      ],
+      "note": ""
+    },
+    {
+      "card_id": 37341,
+      "name": "リセットスタンプ",
+      "set_code": "SM12a",
+      "number_label": "137/173",
+      "formats": [
+        "extra"
+      ],
+      "note": ""
+    },
+    {
+      "card_id": 37970,
+      "name": "回収ネット",
+      "set_code": "S2",
+      "number_label": "086/096",
+      "formats": [
+        "extra"
+      ],
+      "note": ""
+    },
+    {
+      "card_id": 38802,
+      "name": "回収ネット",
+      "set_code": "S4a",
+      "number_label": "157/190",
+      "formats": [
+        "extra"
+      ],
+      "note": ""
+    },
+    {
+      "card_id": 40282,
+      "name": "回収ネット",
+      "set_code": "S8b",
+      "number_label": "133/184",
+      "formats": [
+        "extra"
+      ],
+      "note": ""
+    }
+  ],
+  "updated": "2026-07-10T02:27:52.968576+00:00"
+}
