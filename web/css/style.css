@@ -466,8 +466,13 @@ body {
   padding: 0;
 }
 
-.card-item,
-.deck-item {
+.deck-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.card-item {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
@@ -478,8 +483,21 @@ body {
   margin-bottom: 0.5rem;
 }
 
-.card-item-body,
-.deck-item-body {
+.deck-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.4rem 0.6rem;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  background: #121a27;
+  margin-bottom: 0;
+  text-align: center;
+  min-width: 0;
+}
+
+.card-item-body {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -495,6 +513,54 @@ body {
   flex-shrink: 0;
   background: #0f1724;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.deck-thumb {
+  width: 72%;
+  max-width: 96px;
+  margin: 0 auto;
+}
+
+.deck-card-name {
+  font-size: 0.78rem;
+  line-height: 1.25;
+  width: 100%;
+}
+
+.deck-card-name .badge {
+  display: inline-block;
+  margin: 0.15rem 0 0;
+}
+
+.deck-card-set {
+  font-size: 0.72rem;
+  margin-top: 0;
+}
+
+.deck-item .card-limit {
+  font-size: 0.7rem;
+  margin-top: 0;
+}
+
+.deck-qty-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  width: 100%;
+  margin-top: 0.15rem;
+}
+
+.deck-qty-controls .btn-icon {
+  width: 1.7rem;
+  height: 1.7rem;
+  font-size: 0.85rem;
+}
+
+.deck-qty-controls .qty-value {
+  min-width: 1.1rem;
+  font-size: 0.9rem;
 }
 
 .card-meta {
@@ -757,27 +823,52 @@ body {
     min-height: 2.5rem;
   }
 
-  .card-item,
-  .deck-item {
+  .card-item {
     padding: 0.6rem;
     gap: 0.55rem;
   }
 
-  .card-thumb {
+  .card-item .card-thumb {
     width: 44px;
   }
 
-  .card-item-body,
-  .deck-item-body {
+  .card-item-body {
     flex-direction: column;
     align-items: stretch;
     gap: 0.55rem;
   }
 
-  .card-item-body .btn-primary,
-  .deck-item-body .btn-ghost {
+  .card-item-body .btn-primary {
     width: 100%;
     min-height: 2.5rem;
+  }
+
+  .deck-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .deck-item {
+    padding: 0.4rem 0.25rem 0.5rem;
+  }
+
+  .deck-thumb {
+    width: 78%;
+    max-width: 88px;
+  }
+
+  .deck-card-name {
+    font-size: 0.7rem;
+  }
+
+  .deck-card-set {
+    font-size: 0.65rem;
+  }
+
+  .deck-qty-controls .btn-icon {
+    width: 1.55rem;
+    height: 1.55rem;
+    font-size: 0.75rem;
   }
 
   .qty-controls {

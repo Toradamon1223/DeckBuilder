@@ -217,6 +217,13 @@ function formatCardDetail(card) {
   return parts.join(" · ");
 }
 
+function formatDeckSetLabel(card) {
+  const parts = [];
+  if (card.set_code) parts.push(card.set_code);
+  if (card.number_label) parts.push(card.number_label);
+  return parts.join(" · ");
+}
+
 function legalityBadge(card) {
   const config = getRegConfig();
   const label = legalityLabel(card, currentFormat, config);
@@ -366,29 +373,41 @@ function renderDeck() {
       li.className = "deck-item";
 
       const thumb = createCardThumb(card);
-      if (thumb) li.appendChild(thumb);
+      if (thumb) {
+        thumb.classList.add("deck-thumb");
+        li.appendChild(thumb);
+      }
 
-      const body = document.createElement("div");
-      body.className = "deck-item-body";
+      const name = document.createElement("div");
+      name.className = "card-name deck-card-name";
+      name.innerHTML = `${escapeHtml(formatCardName(card.name))}${legalityBadge(card)}`;
+      li.appendChild(name);
 
-      const meta = document.createElement("div");
-      meta.className = "card-meta";
+      const setLabel = formatDeckSetLabel(card);
+      if (setLabel) {
+        const detail = document.createElement("div");
+        detail.className = "card-detail deck-card-set";
+        detail.textContent = setLabel;
+        li.appendChild(detail);
+      }
+
       const limitText = nameLimitText(card);
-      meta.innerHTML = `
-        <div class="card-name">${escapeHtml(formatCardName(card.name))}${legalityBadge(card)}</div>
-        <div class="card-detail">${escapeHtml(formatCardDetail(card))}</div>
-        ${limitText ? `<div class="card-limit">${escapeHtml(limitText)}</div>` : ""}
-      `;
+      if (limitText) {
+        const limit = document.createElement("div");
+        limit.className = "card-limit";
+        limit.textContent = limitText;
+        li.appendChild(limit);
+      }
 
       const controls = document.createElement("div");
-      controls.className = "qty-controls";
+      controls.className = "qty-controls deck-qty-controls";
 
       const upBtn = document.createElement("button");
       upBtn.type = "button";
       upBtn.className = "btn btn-icon btn-order";
       upBtn.textContent = "↑";
       upBtn.disabled = i === 0;
-      upBtn.title = "上へ";
+      upBtn.title = "左へ";
       upBtn.addEventListener("click", () => moveDeckEntry(card.card_id, -1));
 
       const downBtn = document.createElement("button");
@@ -396,7 +415,7 @@ function renderDeck() {
       downBtn.className = "btn btn-icon btn-order";
       downBtn.textContent = "↓";
       downBtn.disabled = i === entries.length - 1;
-      downBtn.title = "下へ";
+      downBtn.title = "右へ";
       downBtn.addEventListener("click", () => moveDeckEntry(card.card_id, 1));
 
       const minusBtn = document.createElement("button");
@@ -418,15 +437,8 @@ function renderDeck() {
       if (!plusCheck.ok) plusBtn.title = plusCheck.reason;
       plusBtn.addEventListener("click", () => changeQty(card.card_id, 1));
 
-      const removeBtn = document.createElement("button");
-      removeBtn.type = "button";
-      removeBtn.className = "btn btn-ghost";
-      removeBtn.textContent = "削除";
-      removeBtn.addEventListener("click", () => removeCard(card.card_id));
-
-      controls.append(upBtn, downBtn, minusBtn, qtyLabel, plusBtn, removeBtn);
-      body.append(meta, controls);
-      li.append(body);
+      controls.append(upBtn, downBtn, minusBtn, qtyLabel, plusBtn);
+      li.appendChild(controls);
       list.appendChild(li);
     }
 

@@ -75,7 +75,10 @@ def get_admin_password() -> str | None:
     if env:
         return env
     if ADMIN_SECRET_PATH.is_file():
-        return ADMIN_SECRET_PATH.read_text(encoding="utf-8-sig").strip()
+        try:
+            return ADMIN_SECRET_PATH.read_text(encoding="utf-8-sig").strip()
+        except OSError:
+            return None
     return None
 
 
