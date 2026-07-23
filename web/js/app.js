@@ -46,7 +46,6 @@ const mobileViewSwitcher = document.getElementById("mobile-view-switcher");
 const mobileDeckBadge = document.getElementById("mobile-deck-badge");
 const mobileMq = window.matchMedia(MOBILE_BREAKPOINT);
 const formatSelect = document.getElementById("format-select");
-const formatNote = document.getElementById("format-note");
 const banListSelect = document.getElementById("ban-list-select");
 const specialMarksPanel = document.getElementById("special-marks-panel");
 const specialMarksEl = document.getElementById("special-marks");
@@ -776,14 +775,6 @@ async function runSearch(query, options = {}) {
 }
 
 function updateFormatNote() {
-  const config = getRegConfig();
-  const fmt = getFormatConfig(config, currentFormat);
-  if (currentFormat === "special") {
-    const marks = [...specialMarks].sort().join("・") || "未選択";
-    formatNote.textContent = `${fmt.note || ""}（現在: ${marks}）`;
-  } else {
-    formatNote.textContent = fmt.note || "";
-  }
   specialMarksPanel?.classList.toggle("hidden", currentFormat !== "special");
 }
 
