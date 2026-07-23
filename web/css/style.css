@@ -629,46 +629,6 @@ body {
   font-size: 0.85rem;
 }
 
-.deck-image-panel {
-  margin: 0 0 0.85rem;
-  padding: 0.65rem;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius);
-  background: #0f1724;
-}
-
-.deck-image-panel.hidden {
-  display: none;
-}
-
-.deck-image-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem;
-  margin-bottom: 0.55rem;
-}
-
-.deck-image-hint {
-  color: var(--muted);
-  font-size: 0.8rem;
-  flex: 1;
-  min-width: 10rem;
-}
-
-.deck-image-scroll {
-  overflow: auto;
-  max-width: 100%;
-  -webkit-overflow-scrolling: touch;
-}
-
-.deck-image-scroll img {
-  display: block;
-  max-width: none;
-  height: auto;
-  border-radius: 6px;
-}
-
 .deck-qty-controls {
   display: flex;
   flex-wrap: wrap;

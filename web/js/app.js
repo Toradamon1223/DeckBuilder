@@ -69,10 +69,6 @@ const deckCodeImportBtn = document.getElementById("deck-code-import");
 const deckCodeStatus = document.getElementById("deck-code-status");
 const deckCodeExportBtn = document.getElementById("deck-code-export");
 const deckImageExportBtn = document.getElementById("deck-image-export");
-const deckImagePanel = document.getElementById("deck-image-panel");
-const deckImagePreview = document.getElementById("deck-image-preview");
-const deckImageDownload = document.getElementById("deck-image-download");
-const deckImageCloseBtn = document.getElementById("deck-image-close");
 const deckExportPanel = document.getElementById("deck-export-panel");
 const deckCodeOutput = document.getElementById("deck-code-output");
 const deckCodeCopyBtn = document.getElementById("deck-code-copy");
@@ -667,15 +663,7 @@ async function exportDeckListImage() {
     }
     const canvas = await renderDeckListImage(entries);
     const dataUrl = canvas.toDataURL("image/png");
-    if (deckImagePreview) deckImagePreview.src = dataUrl;
-    if (deckImageDownload) {
-      if (deckImageDownload.href?.startsWith("blob:")) {
-        URL.revokeObjectURL(deckImageDownload.href);
-      }
-      deckImageDownload.href = dataUrl;
-      deckImageDownload.download = `deck-list-${deckSize}.png`;
-    }
-    deckImagePanel?.classList.remove("hidden");
+    openDeckImageWindow(dataUrl, canvas.width, canvas.height);
   } catch {
     alert("デッキ画像の作成に失敗しました");
   } finally {
@@ -684,8 +672,89 @@ async function exportDeckListImage() {
   }
 }
 
-function closeDeckImagePanel() {
-  deckImagePanel?.classList.add("hidden");
+function openDeckImageWindow(dataUrl, width, height) {
+  const winW = Math.min(width + 40, Math.max(480, window.screen.availWidth - 80));
+  const winH = Math.min(height + 80, Math.max(320, window.screen.availHeight - 80));
+  const win = window.open(
+    "",
+    "sapotonaDeckListImage",
+    `width=${winW},height=${winH},scrollbars=yes,resizable=yes`
+  );
+  if (!win) {
+    alert("ポップアップがブロックされました。許可してから再度お試しください。");
+    return;
+  }
+
+  win.document.open();
+  win.document.write(`<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>デッキ一覧</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #0b1220;
+      color: #fff;
+      min-height: 100%;
+    }
+    .bar {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      padding: 0.5rem 0.65rem;
+      background: rgba(11, 18, 32, 0.92);
+      border-bottom: 1px solid #243044;
+    }
+    button {
+      border: 1px solid #3a4a63;
+      background: #1a2433;
+      color: #fff;
+      border-radius: 8px;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    button:hover { background: #243044; }
+    .stage {
+      padding: 0.75rem;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    img {
+      display: block;
+      max-width: none;
+      height: auto;
+      background: #0b1220;
+    }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <button type="button" id="close-btn">閉じる</button>
+  </div>
+  <div class="stage">
+    <img id="deck-img" alt="デッキ一覧" src="${dataUrl}">
+  </div>
+  <script>
+    document.getElementById("close-btn").addEventListener("click", function () {
+      window.close();
+    });
+  <\/script>
+</body>
+</html>`);
+  win.document.close();
+  try {
+    win.focus();
+  } catch {
+    // ignore
+  }
 }
 
 async function exportDeckCode() {
@@ -1073,14 +1142,12 @@ deckCodeInput.addEventListener("keydown", (event) => {
 deckCodeExportBtn.addEventListener("click", exportDeckCode);
 deckCodeCopyBtn.addEventListener("click", copyDeckCode);
 deckImageExportBtn?.addEventListener("click", exportDeckListImage);
-deckImageCloseBtn?.addEventListener("click", closeDeckImagePanel);
 
 deckSizeSelect?.addEventListener("change", () => {
   const next = Number(deckSizeSelect.value);
   deckSize = VALID_DECK_SIZES.includes(next) ? next : DECK_SIZE;
   deckSizeSelect.value = String(deckSize);
   saveDeckSize();
-  closeDeckImagePanel();
   renderDeck();
 });
 
