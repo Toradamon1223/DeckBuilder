@@ -11,7 +11,7 @@ import {
 } from "./rules.js";
 import { formatCardName } from "./cardText.js";
 import { createCardThumb } from "./cardImage.js";
-import { renderDeckListImage } from "./deckImage.js?v=2";
+import { renderDeckListImage } from "./deckImage.js?v=3";
 import {
   buildBanIndex,
   collectRegulationWarnings,
@@ -661,12 +661,7 @@ async function exportDeckListImage() {
     for (const section of DECK_SECTIONS) {
       entries.push(...grouped[section.id]);
     }
-    const canvas = await renderDeckListImage(entries, {
-      maxWidth: Math.floor(window.screen.availWidth * 0.96),
-      maxHeight: Math.floor(window.screen.availHeight * 0.88),
-    });
-    const dataUrl = canvas.toDataURL("image/png");
-    openDeckImageWindow(dataUrl, canvas.width, canvas.height);
+    await openDeckImageWindow(entries);
   } catch {
     alert("デッキ画像の作成に失敗しました");
   } finally {
@@ -675,13 +670,43 @@ async function exportDeckListImage() {
   }
 }
 
-function openDeckImageWindow(dataUrl, width, height) {
-  const winW = Math.min(width + 24, window.screen.availWidth);
-  const winH = Math.min(height + 56, window.screen.availHeight);
+/**
+ * @param {Window} win
+ */
+function measureDeckImageViewport(win) {
+  const vv = win.visualViewport;
+  const width = Math.floor((vv?.width || win.innerWidth || win.screen.availWidth) - 8);
+  const height = Math.floor((vv?.height || win.innerHeight || win.screen.availHeight) - 48);
+  return {
+    maxWidth: Math.max(240, width),
+    maxHeight: Math.max(180, height),
+  };
+}
+
+/**
+ * @param {Window} win
+ * @param {Array<{card: object, qty: number}>} entries
+ */
+async function paintDeckImageWindow(win, entries) {
+  if (!win || win.closed) return;
+  const img = win.document.getElementById("deck-img");
+  if (!img) return;
+
+  const viewport = measureDeckImageViewport(win);
+  const canvas = await renderDeckListImage(entries, viewport);
+  img.src = canvas.toDataURL("image/png");
+  img.width = canvas.width;
+  img.height = canvas.height;
+}
+
+/**
+ * @param {Array<{card: object, qty: number}>} entries
+ */
+async function openDeckImageWindow(entries) {
   const win = window.open(
     "",
     "sapotonaDeckListImage",
-    `width=${winW},height=${winH},scrollbars=yes,resizable=yes`
+    `width=${Math.min(window.screen.availWidth, 1200)},height=${Math.min(window.screen.availHeight, 800)},scrollbars=yes,resizable=yes`
   );
   if (!win) {
     alert("ポップアップがブロックされました。許可してから再度お試しください。");
@@ -731,9 +756,8 @@ function openDeckImageWindow(dataUrl, width, height) {
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: auto;
-      padding: 0.35rem;
-      -webkit-overflow-scrolling: touch;
+      overflow: hidden;
+      padding: 0.25rem;
     }
     img {
       display: block;
@@ -751,16 +775,32 @@ function openDeckImageWindow(dataUrl, width, height) {
     <button type="button" id="close-btn">閉じる</button>
   </div>
   <div class="stage">
-    <img id="deck-img" alt="デッキ一覧" src="${dataUrl}">
+    <img id="deck-img" alt="デッキ一覧">
   </div>
-  <script>
-    document.getElementById("close-btn").addEventListener("click", function () {
-      window.close();
-    });
-  <\/script>
 </body>
 </html>`);
   win.document.close();
+
+  const closeBtn = win.document.getElementById("close-btn");
+  closeBtn?.addEventListener("click", () => win.close());
+
+  await paintDeckImageWindow(win, entries);
+
+  if (!win.__deckImageBound) {
+    win.__deckImageBound = true;
+    let timer = null;
+    const schedule = () => {
+      if (timer) win.clearTimeout(timer);
+      timer = win.setTimeout(() => {
+        paintDeckImageWindow(win, entries).catch(() => {});
+      }, 180);
+    };
+    win.addEventListener("resize", schedule);
+    win.addEventListener("orientationchange", schedule);
+    win.visualViewport?.addEventListener("resize", schedule);
+    win.screen?.orientation?.addEventListener?.("change", schedule);
+  }
+
   try {
     win.focus();
   } catch {

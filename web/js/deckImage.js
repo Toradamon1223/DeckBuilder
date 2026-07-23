@@ -1,10 +1,9 @@
 import { cardImageSrc } from "./cardImage.js";
 import { appUrl } from "./paths.js";
 
-const COLS = 15;
-const MAX_ROWS = 4;
+export const DECK_IMAGE_COLS = 15;
+export const DECK_IMAGE_MAX_ROWS = 4;
 const CARD_ASPECT = 63 / 88; // Pokémon card width / height
-const BAR_RESERVE = 52;
 
 /**
  * Prefer same-origin proxy so canvas is not tainted.
@@ -60,8 +59,8 @@ function roundRect(ctx, x, y, w, h, r) {
  * @param {number} maxHeight
  */
 function layoutForScreen(cols, rows, maxWidth, maxHeight) {
-  const pad = Math.max(6, Math.round(Math.min(maxWidth, maxHeight) * 0.012));
-  const gap = Math.max(3, Math.round(Math.min(maxWidth, maxHeight) * 0.008));
+  const pad = Math.max(4, Math.round(Math.min(maxWidth, maxHeight) * 0.01));
+  const gap = Math.max(2, Math.round(Math.min(maxWidth, maxHeight) * 0.006));
 
   const innerW = Math.max(1, maxWidth - pad * 2 - gap * (cols - 1));
   const innerH = Math.max(1, maxHeight - pad * 2 - gap * (rows - 1));
@@ -78,8 +77,8 @@ function layoutForScreen(cols, rows, maxWidth, maxHeight) {
     cardH = cardW / CARD_ASPECT;
   }
 
-  cardW = Math.max(28, Math.floor(cardW));
-  cardH = Math.max(40, Math.floor(cardH));
+  cardW = Math.max(24, Math.floor(cardW));
+  cardH = Math.max(34, Math.floor(cardH));
 
   const width = pad * 2 + cols * cardW + (cols - 1) * gap;
   const height = pad * 2 + rows * cardH + (rows - 1) * gap;
@@ -93,18 +92,18 @@ function layoutForScreen(cols, rows, maxWidth, maxHeight) {
  * @returns {Promise<HTMLCanvasElement>}
  */
 export async function renderDeckListImage(entries, options = {}) {
-  const limited = entries.slice(0, COLS * MAX_ROWS);
+  const limited = entries.slice(0, DECK_IMAGE_COLS * DECK_IMAGE_MAX_ROWS);
   const count = limited.length;
-  const cols = Math.min(COLS, Math.max(1, count));
-  const rows = Math.min(MAX_ROWS, Math.max(1, Math.ceil(count / cols)));
+  const cols = Math.min(DECK_IMAGE_COLS, Math.max(1, count));
+  const rows = Math.min(DECK_IMAGE_MAX_ROWS, Math.max(1, Math.ceil(count / cols)));
 
   const maxWidth = Math.max(
-    320,
-    Math.floor(options.maxWidth || window.screen.availWidth * 0.96)
+    240,
+    Math.floor(options.maxWidth || window.innerWidth || window.screen.availWidth)
   );
   const maxHeight = Math.max(
-    240,
-    Math.floor(options.maxHeight || window.screen.availHeight * 0.88 - BAR_RESERVE)
+    180,
+    Math.floor(options.maxHeight || window.innerHeight || window.screen.availHeight)
   );
 
   const { cardW, cardH, gap, pad, width, height } = layoutForScreen(
@@ -127,10 +126,9 @@ export async function renderDeckListImage(entries, options = {}) {
     limited.map(({ card }) => loadImage(canvasImageSrc(card)))
   );
 
-  const fontSize = Math.max(10, Math.round(cardH * 0.09));
-  const badgeH = Math.max(16, Math.round(fontSize * 1.35));
-  const badgePadX = Math.max(6, Math.round(fontSize * 0.55));
-  const badgeBottom = Math.max(4, Math.round(cardH * 0.04));
+  const fontSize = Math.max(9, Math.round(cardH * 0.055));
+  const badgeH = Math.max(14, Math.round(fontSize * 1.2));
+  const badgePadX = Math.max(5, Math.round(fontSize * 0.45));
 
   limited.forEach(({ qty }, index) => {
     const col = index % cols;
@@ -151,7 +149,7 @@ export async function renderDeckListImage(entries, options = {}) {
       ctx.drawImage(img, dx, dy, dw, dh);
     } else {
       ctx.fillStyle = "#6b7a90";
-      ctx.font = `${Math.max(10, fontSize - 2)}px sans-serif`;
+      ctx.font = `${Math.max(9, fontSize - 1)}px sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("No Image", x + cardW / 2, y + cardH / 2);
@@ -160,18 +158,18 @@ export async function renderDeckListImage(entries, options = {}) {
     const label = String(qty);
     ctx.font = `bold ${fontSize}px sans-serif`;
     const textW = ctx.measureText(label).width;
-    const badgeW = textW + badgePadX * 2;
+    const badgeW = Math.min(cardW, textW + badgePadX * 2);
     const badgeX = x + (cardW - badgeW) / 2;
-    const badgeY = y + cardH - badgeH - badgeBottom;
+    const badgeY = y + cardH - badgeH;
 
     ctx.fillStyle = "rgba(0, 0, 0, 0.88)";
-    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, Math.max(3, Math.round(badgeH / 4)));
+    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, Math.max(2, Math.round(badgeH / 5)));
     ctx.fill();
 
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(label, x + cardW / 2, badgeY + badgeH / 2 + 1);
+    ctx.fillText(label, x + cardW / 2, badgeY + badgeH / 2);
   });
 
   return canvas;
