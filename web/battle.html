@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>対戦練習卓 - さぽとなDeckBuilder</title>
   <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=14">
-  <link rel="stylesheet" href="__BASE_PATH__/css/battle.css?v=4">
+  <link rel="stylesheet" href="__BASE_PATH__/css/battle.css?v=5">
 </head>
 <body class="battle-page">
   <header class="header">
@@ -37,24 +37,12 @@
     </div>
     <p id="battle-status" class="status">デッキコードを読み込んでください</p>
     <p class="battle-howto">
-      たねの出し方: 手札の<strong>たね</strong>（青バッジ）を1回タップ → バトル場／ベンチの点線枠をタップ。
+      たね: 手札の<strong>たね</strong>をタップ → バトル場／ベンチ枠をタップ
     </p>
   </section>
 
   <main id="battle-main" class="battle-main hidden">
     <section class="battle-board">
-      <div class="panel playmat-opp">
-        <div class="zone-title">相手（簡易）</div>
-        <div class="opponent-card">
-          <div class="opponent-name" id="opp-name">壁ポケモン</div>
-          <div class="opponent-hp">
-            HP <span id="opp-hp-left">280</span> / <span id="opp-hp-max">280</span>
-          </div>
-          <div class="damage-bar"><div id="opp-damage-fill" class="damage-fill"></div></div>
-        </div>
-      </div>
-
-      <!-- 公式プレイマット風: 左サイド / 中央バトル+スタジ+山札 / 下ベンチ+右トラッシュ -->
       <div class="panel playmat">
         <div class="playmat-top">
           <div class="playmat-prizes">
@@ -83,7 +71,7 @@
 
         <div class="playmat-bottom">
           <div class="playmat-bench">
-            <div class="zone-title">ベンチ（最大5 / 配置は8枠）</div>
+            <div class="zone-title">ベンチ（最大5 / 枠8）</div>
             <div id="zone-bench" class="bench-row"></div>
           </div>
           <div class="playmat-discard">
@@ -113,9 +101,6 @@
         <div class="battle-quick-btns">
           <button type="button" class="btn btn-ghost btn-sm" data-quick="start-prizes">サイド開始</button>
           <button type="button" class="btn btn-ghost btn-sm" data-quick="prize">サイド取得</button>
-          <button type="button" class="btn btn-ghost btn-sm" data-quick="opp-dmg-30">相手+30</button>
-          <button type="button" class="btn btn-ghost btn-sm" data-quick="opp-dmg-10">相手+10</button>
-          <button type="button" class="btn btn-ghost btn-sm" data-quick="opp-heal-30">相手-30</button>
           <button type="button" class="btn btn-ghost btn-sm" data-quick="mulligan">マリガン</button>
           <button type="button" class="btn btn-ghost btn-sm" data-quick="shuffle-hand">手札戻す</button>
         </div>
@@ -128,6 +113,6 @@
     </aside>
   </main>
 
-  <script type="module" src="__BASE_PATH__/js/battle.js?v=4"></script>
+  <script type="module" src="__BASE_PATH__/js/battle.js?v=5"></script>
 </body>
 </html>

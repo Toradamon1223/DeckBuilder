@@ -65,10 +65,6 @@ const els = {
   countDiscard: document.getElementById("count-discard"),
   countMulligan: document.getElementById("count-mulligan"),
   countHand: document.getElementById("count-hand"),
-  oppName: document.getElementById("opp-name"),
-  oppHpLeft: document.getElementById("opp-hp-left"),
-  oppHpMax: document.getElementById("opp-hp-max"),
-  oppFill: document.getElementById("opp-damage-fill"),
 };
 
 function shuffle(arr) {
@@ -186,7 +182,6 @@ function createFreshState(templates) {
     mulliganCount: 0,
     usedSupporter: false,
     attachedEnergyThisTurn: false,
-    opponent: { name: "壁ポケモン", hp: 280, damage: 0 },
     log: [],
   };
 }
@@ -513,17 +508,6 @@ function endTurn() {
   render();
 }
 
-function oppDamage(delta) {
-  state.opponent.damage = Math.max(0, state.opponent.damage + delta);
-  const left = Math.max(0, state.opponent.hp - state.opponent.damage);
-  log(`相手ダメ ${delta > 0 ? "+" : ""}${delta}（残HP ${left}）`);
-  if (left <= 0) {
-    log("相手をきぜつさせた");
-    setStatus("相手きぜつ — サイドを取ってください");
-  }
-  render();
-}
-
 function selectedHandBasic() {
   const sel = findSelected();
   if (!sel || sel.zone !== "hand" || !isBasic(sel.card)) return null;
@@ -806,18 +790,12 @@ function render() {
     els.deckPile.disabled = state.deck.length === 0;
   }
 
-  const left = Math.max(0, state.opponent.hp - state.opponent.damage);
-  els.oppName.textContent = state.opponent.name;
-  els.oppHpLeft.textContent = String(left);
-  els.oppHpMax.textContent = String(state.opponent.hp);
-  els.oppFill.style.width = `${Math.min(100, (state.opponent.damage / state.opponent.hp) * 100)}%`;
-
-  renderZone(els.active, state.active ? [state.active] : [], "active");
-  renderZone(els.stadium, state.stadium ? [state.stadium] : [], "stadium");
-  renderZone(els.bench, state.bench, "bench");
-  renderZone(els.hand, state.hand, "hand", { empty: "手札なし" });
-  renderZone(els.prizes, state.prizes, "prizes");
-  renderZone(els.discard, state.discard, "discard");
+  if (els.active) renderZone(els.active, state.active ? [state.active] : [], "active");
+  if (els.stadium) renderZone(els.stadium, state.stadium ? [state.stadium] : [], "stadium");
+  if (els.bench) renderZone(els.bench, state.bench, "bench");
+  if (els.hand) renderZone(els.hand, state.hand, "hand", { empty: "手札なし" });
+  if (els.prizes) renderZone(els.prizes, state.prizes, "prizes");
+  if (els.discard) renderZone(els.discard, state.discard, "discard");
 
   els.log.innerHTML = "";
   for (const line of state.log.slice(0, 40)) {
@@ -923,9 +901,6 @@ document.querySelectorAll("[data-quick]").forEach((btn) => {
       render();
     }
     if (q === "prize") takePrize();
-    if (q === "opp-dmg-30") oppDamage(30);
-    if (q === "opp-dmg-10") oppDamage(10);
-    if (q === "opp-heal-30") oppDamage(-30);
     if (q === "mulligan") doMulligan();
     if (q === "shuffle-hand") {
       state.deck = shuffle([...state.deck, ...state.hand]);
