@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>対戦練習卓 - さぽとなDeckBuilder</title>
   <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=14">
-  <link rel="stylesheet" href="__BASE_PATH__/css/battle.css?v=3">
+  <link rel="stylesheet" href="__BASE_PATH__/css/battle.css?v=4">
 </head>
 <body class="battle-page">
   <header class="header">
@@ -43,7 +43,7 @@
 
   <main id="battle-main" class="battle-main hidden">
     <section class="battle-board">
-      <div class="panel battle-zone battle-opponent">
+      <div class="panel playmat-opp">
         <div class="zone-title">相手（簡易）</div>
         <div class="opponent-card">
           <div class="opponent-name" id="opp-name">壁ポケモン</div>
@@ -54,31 +54,49 @@
         </div>
       </div>
 
-      <div class="panel battle-zone">
-        <div class="zone-title">バトル場</div>
-        <div id="zone-active" class="card-row"></div>
+      <!-- 公式プレイマット風: 左サイド / 中央バトル+スタジ+山札 / 下ベンチ+右トラッシュ -->
+      <div class="panel playmat">
+        <div class="playmat-top">
+          <div class="playmat-prizes">
+            <div class="zone-title">サイド <span id="count-prize" class="zone-count">0</span></div>
+            <div id="zone-prizes" class="prize-grid"></div>
+          </div>
+
+          <div class="playmat-active">
+            <div class="zone-title">バトル場</div>
+            <div id="zone-active" class="slot-host"></div>
+          </div>
+
+          <div class="playmat-stadium">
+            <div class="zone-title">スタジアム</div>
+            <div id="zone-stadium" class="slot-host"></div>
+          </div>
+
+          <div class="playmat-deck">
+            <div class="zone-title">山札</div>
+            <button type="button" id="zone-deck" class="deck-pile" title="山札（クリックでドロー）" disabled>
+              <span class="deck-pile-face"></span>
+              <span class="deck-pile-count" id="count-deck">0</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="playmat-bottom">
+          <div class="playmat-bench">
+            <div class="zone-title">ベンチ（最大5 / 配置は8枠）</div>
+            <div id="zone-bench" class="bench-row"></div>
+          </div>
+          <div class="playmat-discard">
+            <div class="zone-title">トラッシュ <span id="count-discard" class="zone-count">0</span></div>
+            <div id="zone-discard" class="slot-host"></div>
+          </div>
+        </div>
       </div>
 
-      <div class="panel battle-zone">
-        <div class="zone-title">ベンチ（最大5）</div>
-        <div id="zone-bench" class="card-row"></div>
-      </div>
-
-      <div class="panel battle-zone">
+      <div class="panel playmat-hand">
         <div class="zone-title">手札 <span id="count-hand" class="zone-count">0</span></div>
         <div id="zone-hand" class="card-row card-row-hand"></div>
         <div id="battle-hand-actions" class="battle-hand-actions"></div>
-      </div>
-
-      <div class="battle-bottom-zones">
-        <div class="panel battle-zone battle-zone-sm">
-          <div class="zone-title">サイド</div>
-          <div id="zone-prizes" class="card-row card-row-compact"></div>
-        </div>
-        <div class="panel battle-zone battle-zone-sm">
-          <div class="zone-title">トラッシュ</div>
-          <div id="zone-discard" class="card-row card-row-compact"></div>
-        </div>
       </div>
     </section>
 
@@ -103,9 +121,6 @@
         </div>
       </div>
       <div class="battle-counts">
-        <div>山札 <strong id="count-deck">0</strong></div>
-        <div>サイド <strong id="count-prize">0</strong></div>
-        <div>トラッシュ <strong id="count-discard">0</strong></div>
         <div>マリガン <strong id="count-mulligan">0</strong></div>
       </div>
       <h3>ログ</h3>
@@ -113,6 +128,6 @@
     </aside>
   </main>
 
-  <script type="module" src="__BASE_PATH__/js/battle.js?v=3"></script>
+  <script type="module" src="__BASE_PATH__/js/battle.js?v=4"></script>
 </body>
 </html>

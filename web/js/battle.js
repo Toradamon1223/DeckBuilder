@@ -20,6 +20,9 @@ const EVOLVES_FROM = {
   メタグロス: ["メタング"],
 };
 
+const MAX_BENCH = 5;
+const BENCH_SLOTS = 8; // visual slots (official play is max 5)
+
 const HP_HINT = {
   モグリュー: 70,
   ダンバル: 70,
@@ -50,6 +53,8 @@ const els = {
   actions: document.getElementById("battle-actions"),
   log: document.getElementById("battle-log"),
   active: document.getElementById("zone-active"),
+  stadium: document.getElementById("zone-stadium"),
+  deckPile: document.getElementById("zone-deck"),
   bench: document.getElementById("zone-bench"),
   hand: document.getElementById("zone-hand"),
   handActions: document.getElementById("battle-hand-actions"),
@@ -174,6 +179,7 @@ function createFreshState(templates) {
     hand: [],
     prizes: [],
     active: null,
+    stadium: null,
     bench: [],
     discard: [],
     selected: null,
@@ -203,6 +209,7 @@ function startOpening() {
   state.hand = [];
   state.prizes = [];
   state.active = null;
+  state.stadium = null;
   state.bench = [];
   drawCards(7);
   log(`初期手札7枚を引いた`);
@@ -258,6 +265,9 @@ function findSelected() {
   if (zone === "active" && state.active?.uid === uid) {
     return { zone, index: 0, card: state.active };
   }
+  if (zone === "stadium" && state.stadium?.uid === uid) {
+    return { zone, index: 0, card: state.stadium };
+  }
   if (zone === "bench") {
     const i = state.bench.findIndex((c) => c.uid === uid);
     return i >= 0 ? { zone, index: i, card: state.bench[i] } : null;
@@ -278,6 +288,11 @@ function removeFromZone(zone, uid) {
   if (zone === "active" && state.active?.uid === uid) {
     const c = state.active;
     state.active = null;
+    return c;
+  }
+  if (zone === "stadium" && state.stadium?.uid === uid) {
+    const c = state.stadium;
+    state.stadium = null;
     return c;
   }
   if (zone === "bench") {
@@ -331,8 +346,8 @@ function playBasicToBench() {
     setStatus("先にバトル場のたねを出してください");
     return;
   }
-  if (state.bench.length >= 5) {
-    setStatus("ベンチがいっぱいです");
+  if (state.bench.length >= MAX_BENCH) {
+    setStatus(`ベンチがいっぱいです（最大${MAX_BENCH}）`);
     return;
   }
   const card = removeFromZone("hand", sel.card.uid);
@@ -362,7 +377,9 @@ function useTrainer() {
   if (!sel || sel.zone !== "hand") return;
   const card = sel.card;
   const section = card.deck_section;
-  if (!["goods", "support", "stadium", "tool"].includes(section) && isPokemon(card)) {
+  const isStadium =
+    section === "stadium" || (card.name || "").includes("マウンテン") || (card.name || "").includes("スタジアム");
+  if (!["goods", "support", "stadium", "tool"].includes(section) && isPokemon(card) && !isStadium) {
     setStatus("トレーナーズを選んでください");
     return;
   }
@@ -374,6 +391,18 @@ function useTrainer() {
     state.usedSupporter = true;
   }
   const used = removeFromZone("hand", card.uid);
+  if (isStadium || section === "stadium") {
+    if (state.stadium) {
+      state.discard.push(state.stadium);
+      log(`スタジアム交代: ${state.stadium.name} → トラッシュ`);
+    }
+    state.stadium = used;
+    state.selected = null;
+    log(`${used.name} をスタジアムに置いた`);
+    setStatus(`${used.name} の効果を解決してください`);
+    render();
+    return;
+  }
   state.discard.push(used);
   state.selected = null;
   log(`${used.name} を使った（効果は自分で解決）`);
@@ -638,7 +667,11 @@ function fillActionButtons(container, sel) {
       ["goods", "support", "stadium", "tool"].includes(card.deck_section) ||
       (!isPokemon(card) && !isEnergy(card))
     ) {
-      add("使う", useTrainer, true);
+      const label =
+        card.deck_section === "stadium" || (card.name || "").includes("マウンテン")
+          ? "スタジアムに置く"
+          : "使う";
+      add(label, useTrainer, true);
     }
     add("トラッシュ", discardSelected);
   }
@@ -651,7 +684,11 @@ function fillActionButtons(container, sel) {
       const idx = state.bench.findIndex((c) => c.uid === card.uid);
       add("バトルへ", () => retreatToBench(idx), true);
     }
-    add("トラッシュ", discardSelected);
+    if (zone === "stadium") {
+      add("トラッシュへ", discardSelected, true);
+    } else {
+      add("トラッシュ", discardSelected);
+    }
   }
 }
 
@@ -668,33 +705,80 @@ function renderZone(el, cards, zone, opts = {}) {
   el.innerHTML = "";
   const handBasic = selectedHandBasic();
 
-  if (zone === "active" && !cards.length) {
-    el.appendChild(
-      renderDropSlot(
-        handBasic ? "ここにバトル場へ" : "空（たねを選択）",
-        Boolean(handBasic && !state.active),
-        () => playBasicToActiveFromUid(handBasic.uid),
-      ),
-    );
+  if (zone === "active") {
+    if (cards.length) {
+      el.appendChild(renderCardButton(cards[0], zone, opts));
+    } else {
+      el.appendChild(
+        renderDropSlot(
+          handBasic ? "ここに出す" : "バトル場",
+          Boolean(handBasic && !state.active),
+          () => playBasicToActiveFromUid(handBasic.uid),
+        ),
+      );
+    }
+    return;
+  }
+
+  if (zone === "stadium") {
+    if (state.stadium) {
+      el.appendChild(renderCardButton(state.stadium, "stadium", opts));
+    } else {
+      const empty = document.createElement("div");
+      empty.className = "empty-slot";
+      empty.textContent = "空";
+      el.appendChild(empty);
+    }
     return;
   }
 
   if (zone === "bench") {
-    for (const card of cards) {
-      el.appendChild(renderCardButton(card, zone, opts));
+    for (let i = 0; i < BENCH_SLOTS; i++) {
+      const card = state.bench[i];
+      if (card) {
+        el.appendChild(renderCardButton(card, "bench", opts));
+      } else {
+        const canDrop =
+          Boolean(handBasic && state.active && state.bench.length < MAX_BENCH) &&
+          i === state.bench.length;
+        el.appendChild(
+          renderDropSlot(
+            canDrop ? "ベンチへ" : "",
+            canDrop,
+            () => playBasicToBenchFromUid(handBasic.uid),
+          ),
+        );
+      }
     }
-    if (cards.length < 5) {
-      el.appendChild(
-        renderDropSlot(
-          handBasic && state.active ? "ベンチへ" : "空枠",
-          Boolean(handBasic && state.active && state.bench.length < 5),
-          () => playBasicToBenchFromUid(handBasic.uid),
-        ),
-      );
+    return;
+  }
+
+  if (zone === "prizes") {
+    for (let i = 0; i < 6; i++) {
+      const card = cards[i];
+      if (card) {
+        el.appendChild(renderCardButton(card, "prizes", { faceDown: true }));
+      } else {
+        const empty = document.createElement("div");
+        empty.className = "battle-card face-down";
+        empty.style.opacity = "0.25";
+        empty.setAttribute("aria-hidden", "true");
+        el.appendChild(empty);
+      }
     }
-    if (!cards.length && !(handBasic && state.active)) {
-      // drop slot already added; ok
+    return;
+  }
+
+  if (zone === "discard") {
+    if (!cards.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty-slot";
+      empty.textContent = "空";
+      el.appendChild(empty);
+      return;
     }
+    const top = cards[cards.length - 1];
+    el.appendChild(renderCardButton(top, "discard", opts));
     return;
   }
 
@@ -718,6 +802,9 @@ function render() {
   els.countDiscard.textContent = String(state.discard.length);
   els.countMulligan.textContent = String(state.mulliganCount);
   els.countHand.textContent = String(state.hand.length);
+  if (els.deckPile) {
+    els.deckPile.disabled = state.deck.length === 0;
+  }
 
   const left = Math.max(0, state.opponent.hp - state.opponent.damage);
   els.oppName.textContent = state.opponent.name;
@@ -725,15 +812,12 @@ function render() {
   els.oppHpMax.textContent = String(state.opponent.hp);
   els.oppFill.style.width = `${Math.min(100, (state.opponent.damage / state.opponent.hp) * 100)}%`;
 
-  if (state.active) {
-    renderZone(els.active, [state.active], "active");
-  } else {
-    renderZone(els.active, [], "active", { empty: "たねを出してください" });
-  }
-  renderZone(els.bench, state.bench, "bench", { empty: "空" });
+  renderZone(els.active, state.active ? [state.active] : [], "active");
+  renderZone(els.stadium, state.stadium ? [state.stadium] : [], "stadium");
+  renderZone(els.bench, state.bench, "bench");
   renderZone(els.hand, state.hand, "hand", { empty: "手札なし" });
-  renderZone(els.prizes, state.prizes, "prizes", { faceDown: true, empty: "未配置" });
-  renderZone(els.discard, state.discard.slice(-8).reverse(), "discard", { empty: "空" });
+  renderZone(els.prizes, state.prizes, "prizes");
+  renderZone(els.discard, state.discard, "discard");
 
   els.log.innerHTML = "";
   for (const line of state.log.slice(0, 40)) {
@@ -822,6 +906,12 @@ els.loadBuilder.addEventListener("click", loadBuilderDeck);
 els.newGame.addEventListener("click", newGame);
 els.draw.addEventListener("click", startTurnDraw);
 els.endTurn.addEventListener("click", endTurn);
+if (els.deckPile) {
+  els.deckPile.addEventListener("click", () => {
+    if (!state || !state.deck.length) return;
+    startTurnDraw();
+  });
+}
 els.code.value = PRESET_CODE;
 
 document.querySelectorAll("[data-quick]").forEach((btn) => {
