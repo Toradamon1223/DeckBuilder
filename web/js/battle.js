@@ -35,6 +35,7 @@ const HP_HINT = {
 let uidSeq = 1;
 let catalog = []; // expanded card templates from loaded deck
 let state = null;
+let actionArmTimer = null;
 
 const els = {
   code: document.getElementById("battle-deck-code"),
@@ -209,7 +210,7 @@ function startOpening() {
     log("たねポケモンがない → マリガン可能");
     setStatus("たねがありません。「マリガン」を押すか手札を確認");
   } else {
-    setStatus("手札の【たね】を選んでバトル場の枠をタップ（ダブルクリックでもOK）");
+    setStatus("手札の【たね】を選んでバトル場の枠をタップ");
   }
 }
 
@@ -222,7 +223,7 @@ function doMulligan() {
   if (!handHasBasic()) {
     setStatus("まだたねがありません。もう一度マリガンできます");
   } else {
-    setStatus("【たね】を選んでバトル場／ベンチ枠へ");
+    setStatus("【たね】を選んでバトル場／ベンチ枠をタップ");
   }
   render();
 }
@@ -292,8 +293,20 @@ function selectCard(zone, uid) {
     state.selected = null;
   } else {
     state.selected = { zone, uid };
+    // Prevent the 2nd click of a double-click from hitting newly-rendered action buttons
+    if (zone === "hand") armActionButtonsBriefly();
   }
   render();
+}
+
+function armActionButtonsBriefly() {
+  const targets = [els.handActions, els.actions].filter(Boolean);
+  for (const el of targets) el.classList.add("actions-armed");
+  if (actionArmTimer) clearTimeout(actionArmTimer);
+  actionArmTimer = setTimeout(() => {
+    for (const el of targets) el.classList.remove("actions-armed");
+    actionArmTimer = null;
+  }, 350);
 }
 
 function playBasicToActive() {
@@ -567,13 +580,6 @@ function renderCardButton(card, zone, opts = {}) {
     }
   }
   btn.addEventListener("click", () => selectCard(zone, card.uid));
-  if (zone === "hand" && isBasic(card)) {
-    btn.title = "クリックで選択 / ダブルクリックで場に出す";
-    btn.addEventListener("dblclick", (ev) => {
-      ev.preventDefault();
-      tryAutoPlayBasic(card.uid);
-    });
-  }
   return btn;
 }
 

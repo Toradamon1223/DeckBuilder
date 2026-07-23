@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>対戦練習卓 - さぽとなDeckBuilder</title>
   <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=14">
-  <link rel="stylesheet" href="__BASE_PATH__/css/battle.css?v=2">
+  <link rel="stylesheet" href="__BASE_PATH__/css/battle.css?v=3">
 </head>
 <body class="battle-page">
   <header class="header">
@@ -37,7 +37,7 @@
     </div>
     <p id="battle-status" class="status">デッキコードを読み込んでください</p>
     <p class="battle-howto">
-      たねの出し方: 手札の<strong>たね</strong>（青バッジ）を選ぶ → バトル場／ベンチの枠をタップ。ダブルクリックでも出せます。
+      たねの出し方: 手札の<strong>たね</strong>（青バッジ）を1回タップ → バトル場／ベンチの点線枠をタップ。
     </p>
   </section>
 
@@ -66,8 +66,8 @@
 
       <div class="panel battle-zone">
         <div class="zone-title">手札 <span id="count-hand" class="zone-count">0</span></div>
-        <div id="battle-hand-actions" class="battle-hand-actions"></div>
         <div id="zone-hand" class="card-row card-row-hand"></div>
+        <div id="battle-hand-actions" class="battle-hand-actions"></div>
       </div>
 
       <div class="battle-bottom-zones">
@@ -113,6 +113,6 @@
     </aside>
   </main>
 
-  <script type="module" src="__BASE_PATH__/js/battle.js?v=2"></script>
+  <script type="module" src="__BASE_PATH__/js/battle.js?v=3"></script>
 </body>
 </html>
