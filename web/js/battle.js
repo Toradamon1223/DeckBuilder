@@ -21,7 +21,8 @@ const EVOLVES_FROM = {
 };
 
 const MAX_BENCH = 5;
-const BENCH_SLOTS = 8; // visual slots (official play is max 5)
+const BENCH_SLOTS = 8;
+const ZERO_CAVE = "ゼロの大空洞";
 
 const SUPPORT_NAMES = new Set([
   "ロケット団のラムダ",
@@ -30,48 +31,15 @@ const SUPPORT_NAMES = new Set([
   "ジプソ",
 ]);
 
-/** Automated deck-search helpers for known trainers in this practice table. */
-const DECK_SEARCH_EFFECTS = {
-  ロケット団のレシーバー: {
-    title: "ロケット団のレシーバー",
-    hint: "山札から、名前に「ロケット団」とつくサポートを1枚選ぶ（相手に見せて手札へ → 山札を切る）",
-    max: 1,
-    shuffleAfter: true,
-    reveal: true,
-    filter: (card) =>
-      (card.deck_section === "support" || SUPPORT_NAMES.has(card.name)) &&
-      (card.name || "").includes("ロケット団"),
-  },
-  ハイパーボール: {
-    title: "ハイパーボール",
-    hint: "山札からポケモンを1枚選んで手札へ（山札を切る）。手札からのトラッシュは手動で。",
-    max: 1,
-    shuffleAfter: true,
-    reveal: false,
-    filter: (card) => isPokemonCard(card),
-  },
-  ロケット団のラムダ: {
-    title: "ロケット団のラムダ",
-    hint: "山札からグッズ（ACE SPEC含む）を1枚選んで手札へ → 山札を切る",
-    max: 1,
-    shuffleAfter: true,
-    reveal: false,
-    filter: (card) =>
-      card.deck_section === "goods" ||
-      card.limit_type === "ace_spec" ||
-      ["プレシャスキャリー", "なかよしポフィン", "ロケット団のレシーバー", "ハイパーボール", "ポケモンいれかえ", "夜のタンカ", "エネルギーリサイクル"].includes(
-        card.name,
-      ),
-  },
-};
-
-function isPokemonCard(card) {
-  if (card.deck_section === "pokemon") return true;
-  if (BASIC_NAMES.has(card.name) || EVOLVES_FROM[card.name]) return true;
-  if (isEnergy(card)) return false;
-  if (card.deck_section && card.deck_section !== "pokemon") return false;
-  return false;
-}
+const GOODS_NAMES = new Set([
+  "プレシャスキャリー",
+  "なかよしポフィン",
+  "ロケット団のレシーバー",
+  "ハイパーボール",
+  "ポケモンいれかえ",
+  "夜のタンカ",
+  "エネルギーリサイクル",
+]);
 
 const HP_HINT = {
   モグリュー: 70,
@@ -85,12 +53,117 @@ const HP_HINT = {
   シェイミ: 70,
 };
 
+function cardHp(card) {
+  return Number(card.hp) || HP_HINT[card.name] || 0;
+}
+
+function isPokemonCard(card) {
+  if (card.deck_section === "pokemon") return true;
+  if (BASIC_NAMES.has(card.name) || EVOLVES_FROM[card.name]) return true;
+  if (isEnergy(card)) return false;
+  if (card.deck_section && card.deck_section !== "pokemon") return false;
+  return false;
+}
+
+function isBasicCard(card) {
+  if (BASIC_NAMES.has(card.name)) return true;
+  return card.evolution_stage === "basic";
+}
+
+function isTrainerCard(card) {
+  if (["goods", "support", "stadium", "tool"].includes(card.deck_section)) return true;
+  if (SUPPORT_NAMES.has(card.name) || GOODS_NAMES.has(card.name)) return true;
+  if (card.limit_type === "ace_spec") return true;
+  const n = card.name || "";
+  return n.includes("マウンテン") || n.includes("スタジアム") || n.includes("指令");
+}
+
+function getMaxBench() {
+  const cave = state?.stadium?.name === ZERO_CAVE;
+  const field = [state?.active, ...(state?.bench || [])].filter(Boolean);
+  const hasTera = field.some((p) => p.terastal);
+  return cave && hasTera ? BENCH_SLOTS : MAX_BENCH;
+}
+
+function remainingBenchSlots() {
+  return Math.max(0, getMaxBench() - (state?.bench?.length || 0));
+}
+
+/**
+ * destination: hand | bench
+ * source: deck | hand
+ * mode: single click confirm | multi select + confirm
+ */
+const TRAINER_EFFECTS = {
+  ロケット団のレシーバー: {
+    title: "ロケット団のレシーバー",
+    hint: "名前に「ロケット団」とつくサポートを1枚選び、相手に見せて手札へ → 山札を切る",
+    source: "deck",
+    destination: "hand",
+    min: 0,
+    max: 1,
+    multi: false,
+    shuffleAfter: true,
+    reveal: true,
+    filter: (card) =>
+      (card.deck_section === "support" || SUPPORT_NAMES.has(card.name)) &&
+      (card.name || "").includes("ロケット団"),
+  },
+  ハイパーボール: {
+    title: "ハイパーボール",
+    hint: "手札を2枚トラッシュしてから、山札のポケモン1枚を手札へ → 山札を切る",
+    discardFromHand: 2,
+    source: "deck",
+    destination: "hand",
+    min: 0,
+    max: 1,
+    multi: false,
+    shuffleAfter: true,
+    filter: (card) => isPokemonCard(card),
+  },
+  ロケット団のラムダ: {
+    title: "ロケット団のラムダ",
+    hint: "山札からトレーナーズを1枚選んで手札へ → 山札を切る",
+    source: "deck",
+    destination: "hand",
+    min: 0,
+    max: 1,
+    multi: false,
+    shuffleAfter: true,
+    filter: (card) => isTrainerCard(card),
+  },
+  なかよしポフィン: {
+    title: "なかよしポフィン",
+    hint: "HP70以下のたねを最大2枚、山札からベンチへ → 山札を切る",
+    source: "deck",
+    destination: "bench",
+    min: 0,
+    max: 2,
+    multi: true,
+    shuffleAfter: true,
+    filter: (card) => isBasicCard(card) && cardHp(card) > 0 && cardHp(card) <= 70,
+    maxDynamic: () => Math.min(2, remainingBenchSlots()),
+  },
+  プレシャスキャリー: {
+    title: "プレシャスキャリー",
+    hint: "山札のたねを好きなだけベンチへ（通常ベンチ5 / ゼロの大空洞+場のテラスタルで8）→ 山札を切る",
+    source: "deck",
+    destination: "bench",
+    min: 0,
+    max: 8,
+    multi: true,
+    shuffleAfter: true,
+    filter: (card) => isBasicCard(card),
+    maxDynamic: () => remainingBenchSlots(),
+  },
+};
+
 let uidSeq = 1;
 let catalog = []; // expanded card templates from loaded deck
 let state = null;
 let actionArmTimer = null;
-/** @type {null | { effectKey: string, effect: object, matches: object[] }} */
-let deckSearch = null;
+/** @type {null | object} */
+let effectSession = null;
 
 const els = {
   code: document.getElementById("battle-deck-code"),
@@ -123,6 +196,7 @@ const els = {
   searchList: document.getElementById("deck-search-list"),
   searchCount: document.getElementById("deck-search-count"),
   searchSkip: document.getElementById("deck-search-skip"),
+  searchConfirm: document.getElementById("deck-search-confirm"),
 };
 
 function shuffle(arr) {
@@ -146,6 +220,7 @@ function cloneCard(template) {
     damage: 0,
     energies: [],
     hp: HP_HINT[template.name] || 0,
+    terastal: false,
   };
 }
 
@@ -399,8 +474,8 @@ function playBasicToBench() {
     setStatus("先にバトル場のたねを出してください");
     return;
   }
-  if (state.bench.length >= MAX_BENCH) {
-    setStatus(`ベンチがいっぱいです（最大${MAX_BENCH}）`);
+  if (state.bench.length >= getMaxBench()) {
+    setStatus(`ベンチがいっぱいです（最大${getMaxBench()}）`);
     return;
   }
   const card = removeFromZone("hand", sel.card.uid);
@@ -428,14 +503,17 @@ function discardSelected() {
 function useTrainer() {
   const sel = findSelected();
   if (!sel || sel.zone !== "hand") return;
-  if (deckSearch) {
-    setStatus("山札サーチ中です");
+  if (effectSession) {
+    setStatus("効果解決中です");
     return;
   }
   const card = sel.card;
   const section = card.deck_section;
   const isStadium =
-    section === "stadium" || (card.name || "").includes("マウンテン") || (card.name || "").includes("スタジアム");
+    section === "stadium" ||
+    (card.name || "").includes("マウンテン") ||
+    (card.name || "").includes("スタジアム") ||
+    card.name === ZERO_CAVE;
   if (!["goods", "support", "stadium", "tool"].includes(section) && isPokemon(card) && !isStadium) {
     setStatus("トレーナーズを選んでください");
     return;
@@ -447,6 +525,16 @@ function useTrainer() {
     }
     state.usedSupporter = true;
   }
+
+  const effect = TRAINER_EFFECTS[card.name];
+  if (effect?.discardFromHand) {
+    const others = state.hand.filter((c) => c.uid !== card.uid);
+    if (others.length < effect.discardFromHand) {
+      setStatus(`${card.name} には追加で手札${effect.discardFromHand}枚のトラッシュが必要です`);
+      return;
+    }
+  }
+
   const used = removeFromZone("hand", card.uid);
   if (isStadium || section === "stadium") {
     if (state.stadium) {
@@ -456,99 +544,220 @@ function useTrainer() {
     state.stadium = used;
     state.selected = null;
     log(`${used.name} をスタジアムに置いた`);
-    setStatus(`${used.name} の効果を解決してください`);
+    setStatus(`${used.name} を設置（ゼロの大空洞+テラスタルでベンチ8）`);
     render();
     return;
   }
+
   state.discard.push(used);
   state.selected = null;
   log(`${used.name} を使った`);
 
-  const effect = DECK_SEARCH_EFFECTS[used.name];
-  if (effect) {
+  if (!effect) {
+    setStatus(`${used.name} の効果は手動で解決してください`);
     render();
-    openDeckSearch(used.name, effect);
     return;
   }
 
-  setStatus(`${used.name} の効果は手動で解決してください`);
   render();
+  if (effect.discardFromHand) openHandDiscard(used.name, effect);
+  else openCardPicker(used.name, effect);
 }
 
-function openDeckSearch(effectKey, effect) {
-  const matches = state.deck.filter((c) => effect.filter(c));
-  deckSearch = { effectKey, effect, matches };
-  els.searchTitle.textContent = effect.title || effectKey;
-  els.searchHint.textContent = effect.hint || "";
-  els.searchCount.textContent = `候補 ${matches.length} 枚 / 山札 ${state.deck.length} 枚`;
-  els.searchList.innerHTML = "";
+function effectMax(effect) {
+  if (typeof effect.maxDynamic === "function") return Math.max(0, effect.maxDynamic());
+  return effect.max ?? 1;
+}
 
-  if (!matches.length) {
+function openHandDiscard(effectKey, effect) {
+  const need = effect.discardFromHand;
+  effectSession = {
+    phase: "hand-discard",
+    effectKey,
+    effect,
+    selected: new Set(),
+    need,
+  };
+  els.searchTitle.textContent = `${effect.title}：手札トラッシュ`;
+  els.searchHint.textContent = `手札から${need}枚選んでトラッシュしてください`;
+  els.searchSkip.textContent = "手札コスト選択中";
+  els.searchSkip.disabled = true;
+  els.searchConfirm.classList.remove("hidden");
+  els.searchConfirm.disabled = true;
+  els.searchConfirm.textContent = `トラッシュしてサーチへ（0/${need}）`;
+  renderPickerList(state.hand, { selectable: true });
+  els.searchModal.classList.remove("hidden");
+  setStatus(`${effect.title}: 手札を${need}枚トラッシュ`);
+}
+
+function openCardPicker(effectKey, effect) {
+  const max = effectMax(effect);
+  const sourceCards = effect.source === "hand" ? state.hand : state.deck;
+  const matches = sourceCards.filter((c) => effect.filter(c));
+  effectSession = {
+    phase: "pick",
+    effectKey,
+    effect,
+    matches,
+    selected: new Set(),
+    max,
+  };
+
+  const destLabel = effect.destination === "bench" ? "ベンチへ" : "手札へ";
+  els.searchTitle.textContent = effect.title || effectKey;
+  els.searchHint.textContent = `${effect.hint || ""}（最大${max}枚 / ${destLabel}）`;
+  els.searchSkip.disabled = false;
+  els.searchSkip.textContent = effect.shuffleAfter ? "選ばずに閉じる（山札を切る）" : "閉じる";
+  const multi = Boolean(effect.multi) || max > 1;
+  if (multi) {
+    els.searchConfirm.classList.remove("hidden");
+    els.searchConfirm.disabled = false;
+    els.searchConfirm.textContent = `決定（0/${max}）`;
+  } else {
+    els.searchConfirm.classList.add("hidden");
+  }
+  renderPickerList(matches, { selectable: multi, max });
+  els.searchModal.classList.remove("hidden");
+  setStatus(`${effect.title}: カードを選んでください`);
+}
+
+function renderPickerList(cards, { selectable = false, max = 1 } = {}) {
+  els.searchList.innerHTML = "";
+  const selected = effectSession?.selected || new Set();
+  if (!cards.length) {
     const empty = document.createElement("div");
     empty.className = "deck-search-empty";
-    empty.textContent = "条件に合うカードが山札にありません";
+    empty.textContent = "候補がありません";
     els.searchList.appendChild(empty);
   } else {
-    for (const card of matches) {
+    for (const card of cards) {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "deck-search-item";
+      btn.className = "deck-search-item" + (selected.has(card.uid) ? " selected" : "");
       const img = document.createElement("img");
       img.src = cardImageSrc(card);
       img.alt = card.name;
       img.loading = "lazy";
       const name = document.createElement("span");
-      name.textContent = card.name;
+      const hp = cardHp(card);
+      name.textContent = hp ? `${card.name} (HP${hp})` : card.name;
       btn.appendChild(img);
       btn.appendChild(name);
-      btn.addEventListener("click", () => pickFromDeckSearch(card.uid));
+      btn.addEventListener("click", () => onPickerClick(card.uid, { selectable, max }));
       els.searchList.appendChild(btn);
     }
   }
-
-  els.searchModal.classList.remove("hidden");
-  setStatus(`${effect.title}: 山札から選んでください`);
+  const countSrc =
+    effectSession?.phase === "hand-discard"
+      ? `選択 ${selected.size}/${effectSession.need}`
+      : `候補 ${cards.length} / 選択 ${selected.size}/${effectSession?.max ?? 1} / 山札 ${state.deck.length}`;
+  els.searchCount.textContent = countSrc;
+  if (effectSession?.phase === "hand-discard") {
+    els.searchConfirm.disabled = selected.size !== effectSession.need;
+    els.searchConfirm.textContent = `トラッシュしてサーチへ（${selected.size}/${effectSession.need}）`;
+  } else if (selectable) {
+    els.searchConfirm.disabled = false;
+    els.searchConfirm.textContent = `決定（${selected.size}/${effectSession.max}）`;
+  }
 }
 
-function closeDeckSearch({ shouldShuffle = false, pickedName = "" } = {}) {
+function onPickerClick(uid, { selectable, max }) {
+  if (!effectSession) return;
+  if (effectSession.phase === "hand-discard") {
+    const set = effectSession.selected;
+    if (set.has(uid)) set.delete(uid);
+    else if (set.size < effectSession.need) set.add(uid);
+    renderPickerList(state.hand, { selectable: true });
+    return;
+  }
+  if (!selectable) {
+    applyPickedUids([uid]);
+    return;
+  }
+  const set = effectSession.selected;
+  if (set.has(uid)) set.delete(uid);
+  else if (set.size < max) set.add(uid);
+  renderPickerList(effectSession.matches, { selectable: true, max });
+}
+
+function confirmEffectSession() {
+  if (!effectSession) return;
+  if (effectSession.phase === "hand-discard") {
+    if (effectSession.selected.size !== effectSession.need) return;
+    for (const uid of [...effectSession.selected]) {
+      const card = removeFromZone("hand", uid);
+      if (!card) continue;
+      if (card.energies?.length) {
+        state.discard.push(...card.energies);
+        card.energies = [];
+      }
+      state.discard.push(card);
+      log(`${card.name} をトラッシュ（コスト）`);
+    }
+    const { effectKey, effect } = effectSession;
+    effectSession = null;
+    render();
+    openCardPicker(effectKey, effect);
+    return;
+  }
+  applyPickedUids([...effectSession.selected]);
+}
+
+function applyPickedUids(uids) {
+  if (!effectSession) return;
+  const { effect } = effectSession;
+  const names = [];
+  for (const uid of uids) {
+    const idx = state.deck.findIndex((c) => c.uid === uid);
+    if (idx < 0) continue;
+    const [picked] = state.deck.splice(idx, 1);
+    if (effect.destination === "bench") {
+      if (!state.active) {
+        state.deck.splice(idx, 0, picked);
+        setStatus("先にバトル場のたねが必要です");
+        continue;
+      }
+      if (state.bench.length >= getMaxBench()) {
+        state.deck.splice(idx, 0, picked);
+        setStatus(`ベンチ上限（${getMaxBench()}）に達しました`);
+        break;
+      }
+      state.bench.push(picked);
+      names.push(picked.name);
+      log(`${picked.name} をベンチに出した`);
+    } else {
+      state.hand.push(picked);
+      names.push(picked.name);
+      if (effect.reveal) log(`${picked.name} を相手に見せて手札に加えた`);
+      else log(`${picked.name} を手札に加えた`);
+    }
+  }
+  closeEffectSession({
+    shouldShuffle: Boolean(effect.shuffleAfter),
+    summary: names.length ? names.join("、") : "",
+  });
+}
+
+function closeEffectSession({ shouldShuffle = false, summary = "" } = {}) {
   els.searchModal.classList.add("hidden");
   els.searchList.innerHTML = "";
-  deckSearch = null;
+  els.searchConfirm.classList.add("hidden");
+  els.searchSkip.disabled = false;
+  effectSession = null;
   if (shouldShuffle) {
     state.deck = shuffle(state.deck);
     log("山札をシャッフルした");
   }
-  if (pickedName) {
-    setStatus(`${pickedName} を手札に加えた`);
-  } else if (shouldShuffle) {
-    setStatus("カードを選ばず山札を切った");
-  }
+  if (summary) setStatus(`${summary} を解決`);
+  else if (shouldShuffle) setStatus("カードを選ばず山札を切った");
   render();
 }
 
-function pickFromDeckSearch(uid) {
-  if (!deckSearch) return;
-  const { effect } = deckSearch;
-  const idx = state.deck.findIndex((c) => c.uid === uid);
-  if (idx < 0) {
-    setStatus("選んだカードが山札にありません");
-    return;
-  }
-  const [picked] = state.deck.splice(idx, 1);
-  state.hand.push(picked);
-  if (effect.reveal) {
-    log(`${picked.name} を相手に見せて手札に加えた`);
-  } else {
-    log(`${picked.name} を手札に加えた`);
-  }
-  closeDeckSearch({ shouldShuffle: Boolean(effect.shuffleAfter), pickedName: picked.name });
-}
-
-function skipDeckSearch() {
-  if (!deckSearch) return;
-  const { effect } = deckSearch;
+function skipEffectSession() {
+  if (!effectSession || effectSession.phase === "hand-discard") return;
+  const { effect } = effectSession;
   log(`${effect.title}: カードを選ばなかった`);
-  closeDeckSearch({ shouldShuffle: Boolean(effect.shuffleAfter) });
+  closeEffectSession({ shouldShuffle: Boolean(effect.shuffleAfter) });
 }
 
 function attachEnergyTo(targetZone, targetUid) {
@@ -737,6 +946,15 @@ function renderCardButton(card, zone, opts = {}) {
       e.textContent = `E${card.energies.length}`;
       btn.appendChild(e);
     }
+    if (card.terastal) {
+      const t = document.createElement("span");
+      t.className = "basic-badge";
+      t.textContent = "Tera";
+      t.style.left = "auto";
+      t.style.right = "2px";
+      t.style.top = "18px";
+      btn.appendChild(t);
+    }
   }
   btn.addEventListener("click", () => selectCard(zone, card.uid));
   return btn;
@@ -800,8 +1018,8 @@ function fillActionButtons(container, sel) {
       const label =
         card.deck_section === "stadium" || (card.name || "").includes("マウンテン")
           ? "スタジアムに置く"
-          : DECK_SEARCH_EFFECTS[card.name]
-            ? "使う（山札サーチ）"
+          : TRAINER_EFFECTS[card.name]
+            ? "使う（効果解決）"
             : "使う";
       add(label, useTrainer, true);
     }
@@ -812,6 +1030,12 @@ function fillActionButtons(container, sel) {
     add("ダメ+10", () => adjustDamage(zone, card.uid, 10));
     add("ダメ+30", () => adjustDamage(zone, card.uid, 30));
     add("ダメ-10", () => adjustDamage(zone, card.uid, -10));
+    add(card.terastal ? "テラスタル解除" : "テラスタルON", () => {
+      card.terastal = !card.terastal;
+      log(`${card.name} のテラスタルを${card.terastal ? "ON" : "OFF"}`);
+      setStatus(`ベンチ上限: ${getMaxBench()}（ゼロの大空洞+テラスタルで8）`);
+      render();
+    });
     if (zone === "bench") {
       const idx = state.bench.findIndex((c) => c.uid === card.uid);
       add("バトルへ", () => retreatToBench(idx), true);
@@ -871,7 +1095,7 @@ function renderZone(el, cards, zone, opts = {}) {
         el.appendChild(renderCardButton(card, "bench", opts));
       } else {
         const canDrop =
-          Boolean(handBasic && state.active && state.bench.length < MAX_BENCH) &&
+          Boolean(handBasic && state.active && state.bench.length < getMaxBench()) &&
           i === state.bench.length;
         el.appendChild(
           renderDropSlot(
@@ -934,6 +1158,8 @@ function render() {
   els.countDiscard.textContent = String(state.discard.length);
   els.countMulligan.textContent = String(state.mulliganCount);
   els.countHand.textContent = String(state.hand.length);
+  const benchMaxEl = document.getElementById("count-bench-max");
+  if (benchMaxEl) benchMaxEl.textContent = String(getMaxBench());
   if (els.deckPile) {
     els.deckPile.disabled = state.deck.length === 0;
   }
@@ -1040,12 +1266,15 @@ if (els.deckPile) {
 }
 els.code.value = PRESET_CODE;
 if (els.searchSkip) {
-  els.searchSkip.addEventListener("click", skipDeckSearch);
+  els.searchSkip.addEventListener("click", skipEffectSession);
+}
+if (els.searchConfirm) {
+  els.searchConfirm.addEventListener("click", confirmEffectSession);
 }
 
 document.querySelectorAll("[data-quick]").forEach((btn) => {
   btn.addEventListener("click", () => {
-    if (!state || deckSearch) return;
+    if (!state || effectSession) return;
     const q = btn.getAttribute("data-quick");
     if (q === "start-prizes") {
       setPrizesIfReady();

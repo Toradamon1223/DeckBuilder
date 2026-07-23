@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>対戦練習卓 - さぽとなDeckBuilder</title>
   <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=14">
-  <link rel="stylesheet" href="__BASE_PATH__/css/battle.css?v=6">
+  <link rel="stylesheet" href="__BASE_PATH__/css/battle.css?v=7">
 </head>
 <body class="battle-page">
   <header class="header">
@@ -71,7 +71,7 @@
 
         <div class="playmat-bottom">
           <div class="playmat-bench">
-            <div class="zone-title">ベンチ（最大5 / 枠8）</div>
+            <div class="zone-title">ベンチ（上限 <span id="count-bench-max">5</span> / 枠8）</div>
             <div id="zone-bench" class="bench-row"></div>
           </div>
           <div class="playmat-discard">
@@ -122,11 +122,14 @@
       <div id="deck-search-list" class="deck-search-list"></div>
       <div class="deck-search-foot">
         <span id="deck-search-count" class="deck-search-count"></span>
-        <button type="button" id="deck-search-skip" class="btn btn-ghost btn-sm">選ばずに閉じる（山札を切る）</button>
+        <div class="deck-search-foot-btns">
+          <button type="button" id="deck-search-confirm" class="btn btn-primary btn-sm hidden">決定</button>
+          <button type="button" id="deck-search-skip" class="btn btn-ghost btn-sm">選ばずに閉じる</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <script type="module" src="__BASE_PATH__/js/battle.js?v=6"></script>
+  <script type="module" src="__BASE_PATH__/js/battle.js?v=7"></script>
 </body>
 </html>
