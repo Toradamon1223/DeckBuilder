@@ -11,7 +11,7 @@ import {
 } from "./rules.js";
 import { formatCardName } from "./cardText.js";
 import { createCardThumb } from "./cardImage.js";
-import { renderDeckListImage } from "./deckImage.js?v=3";
+import { renderDeckListImage } from "./deckImage.js?v=4";
 import {
   buildBanIndex,
   collectRegulationWarnings,

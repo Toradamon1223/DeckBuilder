@@ -87,15 +87,49 @@ function layoutForScreen(cols, rows, maxWidth, maxHeight) {
 }
 
 /**
+ * Choose cols/rows from image count so cards stay as large as possible on screen.
+ * Prefers tidy grids (e.g. 16→8x2, 32→8x4) within max 15x4.
+ * @param {number} count
+ * @param {number} maxWidth
+ * @param {number} maxHeight
+ * @returns {{ cols: number, rows: number }}
+ */
+export function chooseDeckImageGrid(count, maxWidth, maxHeight) {
+  const n = Math.max(1, Math.min(count, DECK_IMAGE_COLS * DECK_IMAGE_MAX_ROWS));
+  const targetRatio = Math.max(0.2, maxWidth / Math.max(1, maxHeight) / CARD_ASPECT);
+  let best = { cols: Math.min(DECK_IMAGE_COLS, n), rows: Math.ceil(n / Math.min(DECK_IMAGE_COLS, n)) };
+  let bestScore = -Infinity;
+
+  for (let rows = 1; rows <= Math.min(DECK_IMAGE_MAX_ROWS, n); rows += 1) {
+    const cols = Math.ceil(n / rows);
+    if (cols > DECK_IMAGE_COLS) continue;
+
+    const layout = layoutForScreen(cols, rows, maxWidth, maxHeight);
+    const empty = cols * rows - n;
+    const cardArea = layout.cardW * layout.cardH;
+    const gridRatio = cols / rows;
+    const aspectPenalty = Math.abs(Math.log(gridRatio / targetRatio));
+    // Prefer bigger cards, exact-fill grids (16→8x2), and screen-like aspect.
+    const score =
+      cardArea * (empty === 0 ? 1.2 : 1) - empty * 40 - aspectPenalty * cardArea * 0.35;
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = { cols, rows };
+    }
+  }
+
+  return best;
+}
+
+/**
  * @param {Array<{card: object, qty: number}>} entries
  * @param {{ maxWidth?: number, maxHeight?: number }} [options]
  * @returns {Promise<HTMLCanvasElement>}
  */
 export async function renderDeckListImage(entries, options = {}) {
   const limited = entries.slice(0, DECK_IMAGE_COLS * DECK_IMAGE_MAX_ROWS);
-  const count = limited.length;
-  const cols = Math.min(DECK_IMAGE_COLS, Math.max(1, count));
-  const rows = Math.min(DECK_IMAGE_MAX_ROWS, Math.max(1, Math.ceil(count / cols)));
+  const count = Math.max(1, limited.length);
 
   const maxWidth = Math.max(
     240,
@@ -106,6 +140,7 @@ export async function renderDeckListImage(entries, options = {}) {
     Math.floor(options.maxHeight || window.innerHeight || window.screen.availHeight)
   );
 
+  const { cols, rows } = chooseDeckImageGrid(count, maxWidth, maxHeight);
   const { cardW, cardH, gap, pad, width, height } = layoutForScreen(
     cols,
     rows,
