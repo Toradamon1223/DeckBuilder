@@ -523,6 +523,9 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/admin.html":
             self._serve_html("admin.html")
             return
+        if path == "/battle.html":
+            self._serve_html("battle.html")
+            return
 
         # Map prefixed static paths back to files under web/
         if BASE_PATH and parsed.path.startswith(f"{BASE_PATH}/"):

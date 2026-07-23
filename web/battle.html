@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja" data-base-path="__BASE_PATH__">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>対戦練習卓 - さぽとなDeckBuilder</title>
+  <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=14">
+  <link rel="stylesheet" href="__BASE_PATH__/css/battle.css?v=1">
+</head>
+<body class="battle-page">
+  <header class="header">
+    <div class="header-row">
+      <div>
+        <h1>対戦練習卓</h1>
+        <p class="subtitle">自分操作の練習用。効果の解決はプレイヤーが判断します。</p>
+      </div>
+      <div class="header-actions">
+        <a href="__BASE_PATH__/" class="btn btn-ghost">← デッキビルダー</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="panel battle-setup">
+    <div class="battle-setup-row">
+      <label for="battle-deck-code">デッキコード</label>
+      <input
+        id="battle-deck-code"
+        type="text"
+        value="8JYGcx-SH8aqk-4GxD8K"
+        placeholder="公式デッキコード"
+        autocomplete="off"
+        spellcheck="false"
+      >
+      <button id="battle-load-deck" type="button" class="btn btn-primary">読み込む</button>
+      <button id="battle-load-builder" type="button" class="btn btn-ghost">ビルダーのデッキ</button>
+      <button id="battle-new-game" type="button" class="btn btn-ghost" disabled>新規ゲーム</button>
+    </div>
+    <p id="battle-status" class="status">デッキコードを読み込んでください</p>
+  </section>
+
+  <main id="battle-main" class="battle-main hidden">
+    <aside class="panel battle-sidebar">
+      <h2>操作</h2>
+      <div class="battle-turn-row">
+        <span id="battle-turn-label">ターン 1</span>
+        <button id="battle-draw" type="button" class="btn btn-primary btn-sm">ドロー</button>
+        <button id="battle-end-turn" type="button" class="btn btn-ghost btn-sm">ターン終了</button>
+      </div>
+      <div id="battle-actions" class="battle-actions"></div>
+      <div class="battle-quick">
+        <h3>クイック</h3>
+        <div class="battle-quick-btns">
+          <button type="button" class="btn btn-ghost btn-sm" data-quick="start-prizes">サイドを置いて開始</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-quick="prize">サイドを取る</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-quick="opp-dmg-30">相手ダメ+30</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-quick="opp-dmg-10">相手ダメ+10</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-quick="opp-heal-30">相手ダメ-30</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-quick="mulligan">マリガン再抽選</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-quick="shuffle-hand">手札を山へ戻してシャッフル</button>
+        </div>
+      </div>
+      <div class="battle-counts">
+        <div>山札 <strong id="count-deck">0</strong></div>
+        <div>サイド <strong id="count-prize">0</strong></div>
+        <div>トラッシュ <strong id="count-discard">0</strong></div>
+        <div>マリガン <strong id="count-mulligan">0</strong></div>
+      </div>
+      <h3>ログ</h3>
+      <ul id="battle-log" class="battle-log"></ul>
+    </aside>
+
+    <section class="battle-board">
+      <div class="panel battle-zone battle-opponent">
+        <div class="zone-title">相手（簡易）</div>
+        <div class="opponent-card">
+          <div class="opponent-name" id="opp-name">壁ポケモン</div>
+          <div class="opponent-hp">
+            HP <span id="opp-hp-left">280</span> / <span id="opp-hp-max">280</span>
+          </div>
+          <div class="damage-bar"><div id="opp-damage-fill" class="damage-fill"></div></div>
+        </div>
+      </div>
+
+      <div class="panel battle-zone">
+        <div class="zone-title">自分のバトル場</div>
+        <div id="zone-active" class="card-row"></div>
+      </div>
+
+      <div class="panel battle-zone">
+        <div class="zone-title">ベンチ（最大5）</div>
+        <div id="zone-bench" class="card-row"></div>
+      </div>
+
+      <div class="panel battle-zone">
+        <div class="zone-title">手札 <span id="count-hand" class="zone-count">0</span></div>
+        <div id="zone-hand" class="card-row card-row-hand"></div>
+      </div>
+
+      <div class="battle-bottom-zones">
+        <div class="panel battle-zone battle-zone-sm">
+          <div class="zone-title">サイド</div>
+          <div id="zone-prizes" class="card-row card-row-compact"></div>
+        </div>
+        <div class="panel battle-zone battle-zone-sm">
+          <div class="zone-title">トラッシュ（直近）</div>
+          <div id="zone-discard" class="card-row card-row-compact"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="__BASE_PATH__/js/battle.js?v=1"></script>
+</body>
+</html>

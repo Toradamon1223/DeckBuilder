@@ -1,0 +1,282 @@
+/* Battle practice table — scoped under .battle-page */
+
+.battle-page .battle-setup {
+  margin: 1rem 1.5rem 0;
+}
+
+.battle-setup-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.battle-setup-row label {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.battle-setup-row input[type="text"] {
+  flex: 1 1 220px;
+  min-width: 180px;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: #0f1724;
+  color: var(--text);
+}
+
+.battle-main {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) 1fr;
+  gap: 1rem;
+  padding: 1rem 1.5rem 2rem;
+  align-items: start;
+}
+
+.battle-sidebar h2,
+.battle-sidebar h3 {
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+}
+
+.battle-sidebar h3 {
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.battle-turn-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.battle-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 4rem;
+}
+
+.battle-actions .btn {
+  width: 100%;
+  text-align: left;
+}
+
+.battle-actions .hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.battle-quick-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.battle-counts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  padding: 0.65rem;
+  border-radius: 8px;
+  background: #0f1724;
+  border: 1px solid var(--panel-border);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.battle-counts strong {
+  color: var(--text);
+}
+
+.battle-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow: auto;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.battle-log li {
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.battle-board {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.battle-zone {
+  padding: 0.75rem;
+}
+
+.battle-zone-sm {
+  min-height: 0;
+}
+
+.zone-title {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin-bottom: 0.5rem;
+}
+
+.zone-count {
+  color: var(--text);
+}
+
+.card-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-height: 3.5rem;
+}
+
+.card-row-hand {
+  min-height: 7rem;
+}
+
+.card-row-compact .battle-card img {
+  width: 52px;
+  height: auto;
+}
+
+.battle-bottom-zones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.battle-card {
+  position: relative;
+  width: 92px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: #0f1724;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+}
+
+.battle-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+.battle-card .card-label {
+  display: block;
+  padding: 0.2rem 0.3rem 0.35rem;
+  font-size: 0.68rem;
+  line-height: 1.25;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.battle-card.selected {
+  border-color: var(--accent);
+}
+
+.battle-card.face-down {
+  width: 64px;
+  height: 90px;
+  background: linear-gradient(145deg, #1e3a5f, #122033);
+  border: 1px solid var(--panel-border);
+  cursor: default;
+  opacity: 0.95;
+}
+
+.battle-card:disabled {
+  cursor: default;
+}
+
+.battle-card .dmg-badge,
+.battle-card .ene-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 1.4rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.battle-card .dmg-badge {
+  background: var(--danger);
+  color: #fff;
+}
+
+.battle-card .ene-badge {
+  top: auto;
+  bottom: 1.6rem;
+  background: #8a9bb0;
+  color: #0f1419;
+}
+
+.opponent-card {
+  max-width: 280px;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: #0f1724;
+}
+
+.opponent-name {
+  font-weight: 600;
+}
+
+.opponent-hp {
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.damage-bar {
+  margin-top: 0.5rem;
+  height: 8px;
+  border-radius: 999px;
+  background: #243044;
+  overflow: hidden;
+}
+
+.damage-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--danger);
+}
+
+.empty-slot {
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0.5rem 0;
+}
+
+@media (max-width: 900px) {
+  .battle-main {
+    grid-template-columns: 1fr;
+  }
+
+  .battle-bottom-zones {
+    grid-template-columns: 1fr;
+  }
+
+  .battle-card {
+    width: 76px;
+  }
+}
