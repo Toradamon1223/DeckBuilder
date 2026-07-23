@@ -532,6 +532,11 @@ body {
   cursor: not-allowed;
 }
 
+.deck-item-illegal {
+  background: rgba(180, 40, 40, 0.35);
+  border-color: rgba(255, 100, 100, 0.55);
+}
+
 .card-item-body {
   display: flex;
   align-items: center;

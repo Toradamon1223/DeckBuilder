@@ -421,6 +421,13 @@ function renderDeck() {
       const { card, qty } = entries[i];
       const li = document.createElement("li");
       li.className = "deck-item";
+      const illegal =
+        isBanned(card, currentFormat, config) ||
+        !isLegalInFormat(card, currentFormat, config);
+      if (illegal) {
+        li.classList.add("deck-item-illegal");
+        li.title = "レギュレーション違反";
+      }
 
       const thumb = createCardThumb(card);
       if (thumb) {
@@ -504,19 +511,26 @@ function renderDeck() {
   deckCount.classList.toggle("incomplete", total > 0 && total !== DECK_SIZE);
   updateMobileDeckBadge(total);
 
-  const isComplete = total === DECK_SIZE;
-  deckCodeExportBtn.disabled = !isComplete;
-  if (!isComplete) {
+  const ruleWarnings = collectWarnings(deck);
+  const regWarnings = collectRegulationWarnings(deck, currentFormat, config);
+  const warnings = [...ruleWarnings, ...regWarnings];
+  deckWarning.textContent = warnings.join(" / ");
+  deckWarning.classList.toggle("hidden", warnings.length === 0);
+
+  const hasRegViolation = regWarnings.length > 0;
+  const canExport = total === DECK_SIZE && !hasRegViolation;
+  deckCodeExportBtn.disabled = !canExport;
+  if (!canExport) {
     deckExportPanel.classList.add("hidden");
     deckCodeOutput.value = "";
   }
-
-  const warnings = [
-    ...collectWarnings(deck),
-    ...collectRegulationWarnings(deck, currentFormat, config),
-  ];
-  deckWarning.textContent = warnings.join(" / ");
-  deckWarning.classList.toggle("hidden", warnings.length === 0);
+  if (hasRegViolation && total === DECK_SIZE) {
+    deckCodeExportBtn.title = "レギュレーション違反のカードがあるため作成できません";
+  } else if (total !== DECK_SIZE) {
+    deckCodeExportBtn.title = `${DECK_SIZE}枚ちょうどでないと作成できません`;
+  } else {
+    deckCodeExportBtn.title = "";
+  }
 
   saveDeck();
 }
@@ -601,8 +615,13 @@ function buildExportPayload() {
   return { format: currentFormat, cards };
 }
 
+function canExportDeckCode() {
+  if (totalCards(deck) !== DECK_SIZE) return false;
+  return collectRegulationWarnings(deck, currentFormat, getRegConfig()).length === 0;
+}
+
 async function exportDeckCode() {
-  if (totalCards(deck) !== DECK_SIZE) return;
+  if (!canExportDeckCode()) return;
 
   deckCodeExportBtn.disabled = true;
   deckCodeExportBtn.textContent = "取得中...";
@@ -635,7 +654,7 @@ async function exportDeckCode() {
     alert("デッキコードの取得に失敗しました");
   } finally {
     deckCodeExportBtn.textContent = "デッキコード表示";
-    deckCodeExportBtn.disabled = totalCards(deck) !== DECK_SIZE;
+    deckCodeExportBtn.disabled = !canExportDeckCode();
   }
 }
 
