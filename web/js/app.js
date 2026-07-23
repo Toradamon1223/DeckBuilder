@@ -11,7 +11,7 @@ import {
 } from "./rules.js";
 import { formatCardName } from "./cardText.js";
 import { createCardThumb } from "./cardImage.js";
-import { renderDeckListImage } from "./deckImage.js";
+import { renderDeckListImage } from "./deckImage.js?v=2";
 import {
   buildBanIndex,
   collectRegulationWarnings,
@@ -661,7 +661,10 @@ async function exportDeckListImage() {
     for (const section of DECK_SECTIONS) {
       entries.push(...grouped[section.id]);
     }
-    const canvas = await renderDeckListImage(entries);
+    const canvas = await renderDeckListImage(entries, {
+      maxWidth: Math.floor(window.screen.availWidth * 0.96),
+      maxHeight: Math.floor(window.screen.availHeight * 0.88),
+    });
     const dataUrl = canvas.toDataURL("image/png");
     openDeckImageWindow(dataUrl, canvas.width, canvas.height);
   } catch {
@@ -673,8 +676,8 @@ async function exportDeckListImage() {
 }
 
 function openDeckImageWindow(dataUrl, width, height) {
-  const winW = Math.min(width + 40, Math.max(480, window.screen.availWidth - 80));
-  const winH = Math.min(height + 80, Math.max(320, window.screen.availHeight - 80));
+  const winW = Math.min(width + 24, window.screen.availWidth);
+  const winH = Math.min(height + 56, window.screen.availHeight);
   const win = window.open(
     "",
     "sapotonaDeckListImage",
@@ -699,7 +702,8 @@ function openDeckImageWindow(dataUrl, width, height) {
       padding: 0;
       background: #0b1220;
       color: #fff;
-      min-height: 100%;
+      height: 100%;
+      overflow: hidden;
     }
     .bar {
       position: sticky;
@@ -708,7 +712,7 @@ function openDeckImageWindow(dataUrl, width, height) {
       display: flex;
       justify-content: flex-end;
       gap: 0.5rem;
-      padding: 0.5rem 0.65rem;
+      padding: 0.4rem 0.55rem;
       background: rgba(11, 18, 32, 0.92);
       border-bottom: 1px solid #243044;
     }
@@ -717,20 +721,27 @@ function openDeckImageWindow(dataUrl, width, height) {
       background: #1a2433;
       color: #fff;
       border-radius: 8px;
-      padding: 0.4rem 0.85rem;
+      padding: 0.35rem 0.8rem;
       font-size: 0.9rem;
       cursor: pointer;
     }
     button:hover { background: #243044; }
     .stage {
-      padding: 0.75rem;
+      height: calc(100% - 42px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       overflow: auto;
+      padding: 0.35rem;
       -webkit-overflow-scrolling: touch;
     }
     img {
       display: block;
-      max-width: none;
+      width: auto;
       height: auto;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
       background: #0b1220;
     }
   </style>
