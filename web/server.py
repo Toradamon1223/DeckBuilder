@@ -8,6 +8,7 @@ import hmac
 import html
 import json
 import os
+import re
 import secrets
 import urllib.error
 import urllib.request
@@ -371,12 +372,40 @@ def is_card_banned(card_id: int, fmt: str, bans: dict) -> bool:
     return False
 
 
+def resolve_regulation_mark(card: dict, config: dict | None = None) -> str:
+    config = config or {}
+    cid = str(card.get("card_id", ""))
+    marks = config.get("cardRegulationMarks") or {}
+    if cid in marks and marks[cid]:
+        return str(marks[cid]).strip().upper()
+    mark = str(card.get("regulation_mark") or "").strip()
+    if mark:
+        return mark.upper()
+    set_code = str(card.get("set_code") or "").strip()
+    smap = config.get("setRegulationMap") or {}
+    return str(smap.get(set_code) or "").strip().upper()
+
+
+def build_name_regulation_marks(config: dict) -> dict[str, list[str]]:
+    """card name -> regulation marks present on any printing of that name."""
+    by_name: dict[str, set[str]] = {}
+    for card in get_enriched_cards():
+        name = normalize_card_name(card.get("name", ""))
+        if not name:
+            continue
+        mark = resolve_regulation_mark(card, config)
+        if not mark:
+            continue
+        by_name.setdefault(name, set()).add(mark)
+    return {name: sorted(marks) for name, marks in by_name.items()}
+
+
 def load_regulation_config() -> dict:
     global _REGULATION_CONFIG_CACHE
     if _REGULATION_CONFIG_CACHE is None:
         formats = load_json(FORMATS_PATH, {})
         whitelist = load_json(WHITELIST_PATH, {"names": []})
-        _REGULATION_CONFIG_CACHE = {
+        base = {
             "formats": formats,
             "trainerWhitelist": whitelist.get("names", []),
             "setRegulationMap": load_set_regulation_map(),
@@ -384,6 +413,8 @@ def load_regulation_config() -> dict:
             "cardRegulationMarks": load_card_regulation_marks(),
             "formatLegal": load_format_legal(),
         }
+        base["nameRegulationMarks"] = build_name_regulation_marks(base)
+        _REGULATION_CONFIG_CACHE = base
     return _REGULATION_CONFIG_CACHE
 
 
@@ -955,16 +986,26 @@ class Handler(SimpleHTTPRequestHandler):
 
     @staticmethod
     def _resolve_regulation_mark(card: dict, config: dict) -> str:
-        cid = str(card.get("card_id", ""))
-        marks = config.get("cardRegulationMarks") or {}
-        if cid in marks and marks[cid]:
-            return str(marks[cid])
-        mark = str(card.get("regulation_mark") or "").strip()
-        if mark:
-            return mark
-        set_code = str(card.get("set_code") or "").strip()
-        smap = config.get("setRegulationMap") or {}
-        return str(smap.get(set_code) or "").strip()
+        return resolve_regulation_mark(card, config)
+
+    @staticmethod
+    def _is_pokemon_card(card: dict, name: str) -> bool:
+        category = str(card.get("card_category") or "").strip().lower()
+        if category in {"pokemon", "pokémon", "ポケモン"}:
+            return True
+        if category in {"trainer", "energy", "トレーナーズ", "エネルギー"}:
+            return False
+        if name.startswith("基本") and "エネルギー" in name:
+            return False
+        if "プリズムスター" in name or name.startswith("かがやく"):
+            return True
+        if re.search(r"(?:ex|EX|VMAX|VSTAR|V-UNION|GX)$", name):
+            return True
+        if re.search(r"(?:エックス|ＥＸ)$", name):
+            return True
+        if "エネルギー" in name:
+            return False
+        return False
 
     @staticmethod
     def _is_legal_special(card: dict, marks: set[str], custom_ban_ids: set[int], config: dict | None = None) -> bool:
@@ -976,9 +1017,16 @@ class Handler(SimpleHTTPRequestHandler):
             return True
 
         config = config or {}
-        mark = Handler._resolve_regulation_mark(card, config).upper()
+        mark = resolve_regulation_mark(card, config)
         if mark and mark in marks:
             return True
+
+        # 同名ルール: 選んだマークにその名前の版があれば、トレーナーズ等は全版OK
+        if not Handler._is_pokemon_card(card, name):
+            name_marks = config.get("nameRegulationMarks") or {}
+            for name_mark in name_marks.get(name) or []:
+                if name_mark in marks:
+                    return True
 
         whitelist = set(config.get("trainerWhitelist", []))
         if name in whitelist:

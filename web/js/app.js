@@ -4,7 +4,6 @@ import {
   countByName,
   getLimitGroup,
   getLimitType,
-  limitLabel,
   totalCards,
   DECK_SIZE,
   NAME_LIMIT,
@@ -17,7 +16,8 @@ import {
   enrichCard,
   getFormatConfig,
   isLegalInFormat,
-  legalityLabel,
+  isBanned,
+  getBanEntry,
   REGULATION_MARKS,
 } from "./regulation.js";
 
@@ -212,6 +212,7 @@ function getRegConfig() {
         setRegulationMap: regulationConfig.setRegulationMap || {},
         cardRegulationMarks: regulationConfig.cardRegulationMarks || {},
         formatLegal: regulationConfig.formatLegal || { standard: {}, extra: {} },
+        nameRegulationMarks: regulationConfig.nameRegulationMarks || {},
         bannedByFormat: banIndex.byFormat,
         banDetails: banIndex.details,
       }
@@ -226,6 +227,7 @@ function getRegConfig() {
         setRegulationMap: {},
         cardRegulationMarks: {},
         formatLegal: { standard: {}, extra: {} },
+        nameRegulationMarks: {},
         bannedByFormat: banIndex.byFormat,
         banDetails: banIndex.details,
       };
@@ -246,17 +248,6 @@ function normalizeDeckCards() {
   }
 }
 
-function formatCardDetail(card) {
-  const enriched = enrichCard(card, getRegConfig());
-  const parts = [];
-  if (enriched.regulation_mark) parts.push(`レギュ ${enriched.regulation_mark}`);
-  if (card.set_code) parts.push(card.set_code);
-  if (card.number_label) parts.push(card.number_label);
-  const label = limitLabel(card);
-  if (label) parts.push(label);
-  return parts.join(" · ");
-}
-
 function formatDeckSetLabel(card) {
   const parts = [];
   if (card.set_code) parts.push(card.set_code);
@@ -266,12 +257,10 @@ function formatDeckSetLabel(card) {
 
 function legalityBadge(card) {
   const config = getRegConfig();
-  const label = legalityLabel(card, currentFormat, config);
-  if (!label) return "";
-  if (label.startsWith("禁止")) {
-    return `<span class="badge badge-banned">${escapeHtml(label)}</span>`;
-  }
-  return `<span class="badge badge-legal">${escapeHtml(label)}</span>`;
+  if (!isBanned(card, currentFormat, config)) return "";
+  const entry = getBanEntry(card, currentFormat, config);
+  const label = entry?.note ? `禁止: ${entry.note}` : "禁止";
+  return `<span class="badge badge-banned">${escapeHtml(label)}</span>`;
 }
 
 function nameLimitText(card) {
@@ -310,7 +299,11 @@ function renderSearchResults(data) {
     const canAdd = legal && qtyCheck.ok;
     let blockedReason = "";
     if (!legal) {
-      blockedReason = `${getFormatConfig(config, currentFormat).label}では使用不可`;
+      if (currentFormat === "special") {
+        blockedReason = "特殊では使用不可（同名カードに選択中レギュの版なし）";
+      } else {
+        blockedReason = `${getFormatConfig(config, currentFormat).label}では使用不可`;
+      }
     } else if (!qtyCheck.ok) {
       blockedReason = qtyCheck.reason;
     }
@@ -413,11 +406,10 @@ function renderDeck() {
     hasCards = true;
 
     const sectionCards = entries.reduce((sum, entry) => sum + entry.qty, 0);
-    const sectionEl = document.createElement("details");
-    sectionEl.className = "deck-section deck-section-collapse";
-    sectionEl.open = section.id === "pokemon" || entries.length <= 3;
+    const sectionEl = document.createElement("section");
+    sectionEl.className = "deck-section";
 
-    const title = document.createElement("summary");
+    const title = document.createElement("h3");
     title.className = "deck-section-title";
     title.textContent = `${section.label}（${sectionCards}枚）`;
     sectionEl.appendChild(title);

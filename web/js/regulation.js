@@ -175,6 +175,18 @@ export function inferCardKind(card, config) {
 }
 
 /**
+ * True if any printing of this card name has one of the allowed marks.
+ * @param {string} name
+ * @param {Set<string>} allowed
+ * @param {object} config
+ */
+export function nameHasAllowedMark(name, allowed, config) {
+  const marks = config.nameRegulationMarks?.[name];
+  if (!marks || !marks.length) return false;
+  return marks.some((m) => allowed.has(m));
+}
+
+/**
  * @param {object} card
  * @param {RegulationFormat} format
  * @param {object} config
@@ -199,6 +211,12 @@ export function isLegalInFormat(card, format, config) {
         : new Set(getFormatConfig(config, "special").marks || []);
     const mark = enriched.regulation_mark || "";
     if (mark && allowed.has(mark)) return true;
+
+    // 同名ルール: 選んだマークにその名前の版があれば、トレーナーズ等は全版OK
+    // （博士の研究のオーキド／アララギ版なども同名として扱う）
+    if (kind !== "pokemon" && nameHasAllowedMark(name, allowed, config)) {
+      return true;
+    }
 
     // 公式の同名再録トレーナー等（ボスの指令など）
     if (kind !== "pokemon" && config.trainerWhitelist.has(name)) {
@@ -258,29 +276,9 @@ export function legalityLabel(card, format, config) {
     return null;
   }
   const enriched = enrichCard(card, config);
-
-  if (isBanned(enriched, format, config)) {
-    const entry = getBanEntry(enriched, format, config);
-    return entry?.note ? `禁止: ${entry.note}` : "禁止";
-  }
-
-  if (format === "all") return null;
-
-  const mark = enriched.regulation_mark || "";
-  if (format === "special") {
-    const allowed = config.specialMarks instanceof Set
-      ? config.specialMarks
-      : new Set(getFormatConfig(config, "special").marks || []);
-    if (mark && allowed.has(mark)) return `レギュ ${mark}`;
-    return null;
-  }
-
-  const fmt = getFormatConfig(config, format);
-  if (mark && (fmt.marks || []).includes(mark)) {
-    return `レギュ ${mark}`;
-  }
-
-  return null;
+  if (!isBanned(enriched, format, config)) return null;
+  const entry = getBanEntry(enriched, format, config);
+  return entry?.note ? `禁止: ${entry.note}` : "禁止";
 }
 
 /**
@@ -309,7 +307,14 @@ export function collectRegulationWarnings(deck, format, config) {
     }
     if (format === "all") continue;
     if (!isLegalInFormat(card, format, config)) {
-      warnings.push(`「${displayName}」は${getFormatConfig(config, format).label}で使用不可`);
+      const fmtLabel = getFormatConfig(config, format).label;
+      if (format === "special") {
+        warnings.push(
+          `「${displayName}」は特殊で使用不可（同名カードに選択中レギュの版なし）`
+        );
+      } else {
+        warnings.push(`「${displayName}」は${fmtLabel}で使用不可`);
+      }
     }
   }
   return warnings;
