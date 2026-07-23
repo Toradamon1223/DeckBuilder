@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>さぽとなDeckBuilder</title>
-  <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=12">
+  <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=13">
 </head>
 <body>
   <header class="header">
@@ -82,9 +82,25 @@
       <div class="deck-header">
         <h2>デッキ</h2>
         <div class="deck-summary">
+          <label class="deck-size-label" for="deck-size-select">枚数</label>
+          <select id="deck-size-select" class="deck-size-select">
+            <option value="60" selected>60枚</option>
+            <option value="30">30枚（ハーフ）</option>
+          </select>
           <span id="deck-count" class="deck-count">0 / 60</span>
+          <button id="deck-image-export" type="button" class="btn btn-ghost btn-sm" disabled>デッキ画像</button>
           <button id="deck-code-export" type="button" class="btn btn-primary btn-sm" disabled>デッキコード表示</button>
           <button id="clear-deck" type="button" class="btn btn-ghost">全削除</button>
+        </div>
+      </div>
+      <div id="deck-image-panel" class="deck-image-panel hidden">
+        <div class="deck-image-toolbar">
+          <span class="deck-image-hint">横長画像です。ピンチ／拡大して確認できます。</span>
+          <a id="deck-image-download" class="btn btn-ghost btn-sm" download="deck-list.png">ダウンロード</a>
+          <button id="deck-image-close" type="button" class="btn btn-ghost btn-sm">閉じる</button>
+        </div>
+        <div class="deck-image-scroll">
+          <img id="deck-image-preview" alt="デッキリスト画像">
         </div>
       </div>
       <div id="deck-export-panel" class="deck-export-panel hidden">
@@ -110,6 +126,6 @@
     </button>
   </nav>
 
-  <script type="module" src="__BASE_PATH__/js/app.js?v=18"></script>
+  <script type="module" src="__BASE_PATH__/js/app.js?v=19"></script>
 </body>
 </html>

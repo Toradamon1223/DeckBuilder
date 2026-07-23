@@ -41,6 +41,8 @@ FORMAT_TO_REGULATION = {
 }
 
 DECK_SIZE = 60
+HALF_DECK_SIZE = 30
+VALID_DECK_SIZES = (HALF_DECK_SIZE, DECK_SIZE)
 
 
 def normalize_deck_code(raw: str) -> str:
@@ -183,12 +185,13 @@ def build_deck_fields(cards: list[dict]) -> dict[str, str]:
     return {field: "-".join(segments) for field, segments in buckets.items()}
 
 
-def register_deck_code(fields: dict[str, str], fmt: str = "standard") -> dict:
+def register_deck_code(fields: dict[str, str], fmt: str = "standard", deck_size: int = DECK_SIZE) -> dict:
+    size = deck_size if deck_size in VALID_DECK_SIZES else DECK_SIZE
     regulation = FORMAT_TO_REGULATION.get(fmt, "STD")
     payload = {
         "deckName": "deck",
         "deckCode": "",
-        "deckSize": str(DECK_SIZE),
+        "deckSize": str(size),
         "regulation_deck_itm": regulation,
         "deck_pke": fields.get("deck_pke", ""),
         "deck_gds": fields.get("deck_gds", ""),
@@ -233,16 +236,19 @@ def register_deck_code(fields: dict[str, str], fmt: str = "standard") -> dict:
     return {"code": str(result["deckID"])}
 
 
-def export_deck_code(cards: list[dict], fmt: str = "standard") -> dict:
+def export_deck_code(
+    cards: list[dict], fmt: str = "standard", deck_size: int = DECK_SIZE
+) -> dict:
+    size = deck_size if deck_size in VALID_DECK_SIZES else DECK_SIZE
     total = sum(int(card.get("qty", 0)) for card in cards)
-    if total != DECK_SIZE:
+    if total != size:
         return {
             "error": "invalid_size",
-            "message": f"デッキは{DECK_SIZE}枚必要です（現在 {total} 枚）。",
+            "message": f"デッキは{size}枚必要です（現在 {total} 枚）。",
         }
 
     fields = build_deck_fields(cards)
     if not any(fields.values()):
         return {"error": "empty_deck", "message": "デッキが空です。"}
 
-    return register_deck_code(fields, fmt)
+    return register_deck_code(fields, fmt, size)

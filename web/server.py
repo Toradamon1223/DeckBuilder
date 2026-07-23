@@ -772,9 +772,20 @@ class Handler(SimpleHTTPRequestHandler):
         if not image_url:
             self.send_error(404, "Image not found")
             return
-        self.send_response(302)
-        self.send_header("Location", image_url)
+        try:
+            request = urllib.request.Request(image_url, headers=OFFICIAL_HEADERS)
+            with urllib.request.urlopen(request, timeout=20) as response:
+                payload = response.read()
+                content_type = response.headers.get("Content-Type") or "image/jpeg"
+        except (urllib.error.URLError, TimeoutError):
+            self.send_error(502, "Failed to fetch card image")
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(payload)))
+        self.send_header("Cache-Control", "public, max-age=86400")
         self.end_headers()
+        self.wfile.write(payload)
 
     def _export_deck_code(self) -> None:
         body = self._read_json_body()
@@ -807,7 +818,12 @@ class Handler(SimpleHTTPRequestHandler):
                 }
             )
 
-        result = export_deck_code(cleaned, fmt)
+        try:
+            deck_size = int(body.get("deck_size") or body.get("deckSize") or 60)
+        except (TypeError, ValueError):
+            deck_size = 60
+
+        result = export_deck_code(cleaned, fmt, deck_size)
         status = 200 if "error" not in result else 400
         self._write_json(status, result)
 

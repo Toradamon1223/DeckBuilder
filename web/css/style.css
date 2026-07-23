@@ -586,6 +586,89 @@ body {
   margin-top: 0;
 }
 
+.deck-item-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+  margin-top: 0.15rem;
+}
+
+.deck-order-row,
+.deck-qty-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+}
+
+.deck-item-controls .btn-icon {
+  width: 1.7rem;
+  height: 1.7rem;
+  font-size: 0.85rem;
+}
+
+.deck-item-controls .qty-value {
+  min-width: 1.1rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.deck-size-label {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.deck-size-select {
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.deck-image-panel {
+  margin: 0 0 0.85rem;
+  padding: 0.65rem;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  background: #0f1724;
+}
+
+.deck-image-panel.hidden {
+  display: none;
+}
+
+.deck-image-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+}
+
+.deck-image-hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  flex: 1;
+  min-width: 10rem;
+}
+
+.deck-image-scroll {
+  overflow: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.deck-image-scroll img {
+  display: block;
+  max-width: none;
+  height: auto;
+  border-radius: 6px;
+}
+
 .deck-qty-controls {
   display: flex;
   flex-wrap: wrap;
@@ -898,6 +981,12 @@ body {
   .deck-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.4rem;
+  }
+
+  .deck-item-controls .btn-icon {
+    width: 1.55rem;
+    height: 1.55rem;
+    font-size: 0.75rem;
   }
 
   .deck-qty-controls .btn-icon {

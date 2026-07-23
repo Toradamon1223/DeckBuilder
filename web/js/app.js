@@ -6,10 +6,12 @@ import {
   getLimitType,
   totalCards,
   DECK_SIZE,
+  VALID_DECK_SIZES,
   NAME_LIMIT,
 } from "./rules.js";
 import { formatCardName } from "./cardText.js";
 import { createCardThumb } from "./cardImage.js";
+import { renderDeckListImage } from "./deckImage.js";
 import {
   buildBanIndex,
   collectRegulationWarnings,
@@ -37,6 +39,7 @@ const SEARCH_LIMIT_KEY = "pokeca-deck-search-limit-v1";
 const MOBILE_VIEW_KEY = "pokeca-mobile-view-v1";
 const SPECIAL_MARKS_KEY = "pokeca-special-marks-v1";
 const BAN_LIST_KEY = "pokeca-ban-list-v1";
+const DECK_SIZE_KEY = "pokeca-deck-size-v1";
 const MOBILE_BREAKPOINT = "(max-width: 768px)";
 const VALID_FORMATS = ["standard", "extra", "special", "all"];
 const VALID_SEARCH_LIMITS = [10, 50, 100];
@@ -57,6 +60,7 @@ const searchPagination = document.getElementById("search-pagination");
 const searchLimitSelect = document.getElementById("search-limit");
 const deckList = document.getElementById("deck-list");
 const deckCount = document.getElementById("deck-count");
+const deckSizeSelect = document.getElementById("deck-size-select");
 const deckWarning = document.getElementById("deck-warning");
 const deckEmpty = document.getElementById("deck-empty");
 const clearDeckBtn = document.getElementById("clear-deck");
@@ -64,6 +68,11 @@ const deckCodeInput = document.getElementById("deck-code-input");
 const deckCodeImportBtn = document.getElementById("deck-code-import");
 const deckCodeStatus = document.getElementById("deck-code-status");
 const deckCodeExportBtn = document.getElementById("deck-code-export");
+const deckImageExportBtn = document.getElementById("deck-image-export");
+const deckImagePanel = document.getElementById("deck-image-panel");
+const deckImagePreview = document.getElementById("deck-image-preview");
+const deckImageDownload = document.getElementById("deck-image-download");
+const deckImageCloseBtn = document.getElementById("deck-image-close");
 const deckExportPanel = document.getElementById("deck-export-panel");
 const deckCodeOutput = document.getElementById("deck-code-output");
 const deckCodeCopyBtn = document.getElementById("deck-code-copy");
@@ -90,6 +99,18 @@ let searchPage = 1;
 let searchLimit = loadSearchLimit();
 let lastSearchQuery = "";
 let currentFormat = "standard";
+/** @type {number} */
+let deckSize = loadDeckSize();
+
+function loadDeckSize() {
+  const stored = Number(localStorage.getItem(DECK_SIZE_KEY));
+  if (VALID_DECK_SIZES.includes(stored)) return stored;
+  return DECK_SIZE;
+}
+
+function saveDeckSize() {
+  localStorage.setItem(DECK_SIZE_KEY, String(deckSize));
+}
 
 function loadSpecialMarks() {
   try {
@@ -148,8 +169,8 @@ function syncMobileLayout() {
 function updateMobileDeckBadge(total) {
   if (!mobileDeckBadge) return;
   mobileDeckBadge.textContent = String(total);
-  mobileDeckBadge.classList.toggle("complete", total === DECK_SIZE);
-  mobileDeckBadge.classList.toggle("incomplete", total > 0 && total !== DECK_SIZE);
+  mobileDeckBadge.classList.toggle("complete", total === deckSize);
+  mobileDeckBadge.classList.toggle("incomplete", total > 0 && total !== deckSize);
 }
 
 function loadDeckState() {
@@ -456,23 +477,31 @@ function renderDeck() {
       }
 
       const controls = document.createElement("div");
-      controls.className = "qty-controls deck-qty-controls";
+      controls.className = "deck-item-controls";
 
-      const upBtn = document.createElement("button");
-      upBtn.type = "button";
-      upBtn.className = "btn btn-icon btn-order";
-      upBtn.textContent = "↑";
-      upBtn.disabled = i === 0;
-      upBtn.title = "左へ";
-      upBtn.addEventListener("click", () => moveDeckEntry(card.card_id, -1));
+      const orderRow = document.createElement("div");
+      orderRow.className = "deck-order-row";
 
-      const downBtn = document.createElement("button");
-      downBtn.type = "button";
-      downBtn.className = "btn btn-icon btn-order";
-      downBtn.textContent = "↓";
-      downBtn.disabled = i === entries.length - 1;
-      downBtn.title = "右へ";
-      downBtn.addEventListener("click", () => moveDeckEntry(card.card_id, 1));
+      const leftBtn = document.createElement("button");
+      leftBtn.type = "button";
+      leftBtn.className = "btn btn-icon btn-order";
+      leftBtn.textContent = "←";
+      leftBtn.disabled = i === 0;
+      leftBtn.title = "左へ";
+      leftBtn.addEventListener("click", () => moveDeckEntry(card.card_id, -1));
+
+      const rightBtn = document.createElement("button");
+      rightBtn.type = "button";
+      rightBtn.className = "btn btn-icon btn-order";
+      rightBtn.textContent = "→";
+      rightBtn.disabled = i === entries.length - 1;
+      rightBtn.title = "右へ";
+      rightBtn.addEventListener("click", () => moveDeckEntry(card.card_id, 1));
+
+      orderRow.append(leftBtn, rightBtn);
+
+      const qtyRow = document.createElement("div");
+      qtyRow.className = "deck-qty-row";
 
       const minusBtn = document.createElement("button");
       minusBtn.type = "button";
@@ -493,7 +522,8 @@ function renderDeck() {
       if (!plusCheck.ok) plusBtn.title = plusCheck.reason;
       plusBtn.addEventListener("click", () => changeQty(card.card_id, 1));
 
-      controls.append(upBtn, downBtn, minusBtn, qtyLabel, plusBtn);
+      qtyRow.append(minusBtn, qtyLabel, plusBtn);
+      controls.append(orderRow, qtyRow);
       li.appendChild(controls);
       list.appendChild(li);
     }
@@ -505,28 +535,31 @@ function renderDeck() {
   deckEmpty.classList.toggle("hidden", hasCards);
 
   const total = totalCards(deck);
-  deckCount.textContent = `${total} / ${DECK_SIZE}`;
-  deckCount.classList.toggle("complete", total === DECK_SIZE);
-  deckCount.classList.toggle("incomplete", total > 0 && total !== DECK_SIZE);
+  deckCount.textContent = `${total} / ${deckSize}`;
+  deckCount.classList.toggle("complete", total === deckSize);
+  deckCount.classList.toggle("incomplete", total > 0 && total !== deckSize);
   updateMobileDeckBadge(total);
 
-  const ruleWarnings = collectWarnings(deck);
+  const ruleWarnings = collectWarnings(deck, deckSize);
   const regWarnings = collectRegulationWarnings(deck, currentFormat, config);
   const warnings = [...ruleWarnings, ...regWarnings];
   deckWarning.textContent = warnings.join(" / ");
   deckWarning.classList.toggle("hidden", warnings.length === 0);
 
   const hasRegViolation = regWarnings.length > 0;
-  const canExport = total === DECK_SIZE && !hasRegViolation;
+  const canExport = total === deckSize && !hasRegViolation;
   deckCodeExportBtn.disabled = !canExport;
+  if (deckImageExportBtn) {
+    deckImageExportBtn.disabled = total === 0;
+  }
   if (!canExport) {
     deckExportPanel.classList.add("hidden");
     deckCodeOutput.value = "";
   }
-  if (hasRegViolation && total === DECK_SIZE) {
+  if (hasRegViolation && total === deckSize) {
     deckCodeExportBtn.title = "レギュレーション違反のカードがあるため作成できません";
-  } else if (total !== DECK_SIZE) {
-    deckCodeExportBtn.title = `${DECK_SIZE}枚ちょうどでないと作成できません`;
+  } else if (total !== deckSize) {
+    deckCodeExportBtn.title = `${deckSize}枚ちょうどでないと作成できません`;
   } else {
     deckCodeExportBtn.title = "";
   }
@@ -598,6 +631,11 @@ function clearDeck() {
   if (searchInput.value.trim()) runSearch(searchInput.value);
 }
 
+function canExportDeckCode() {
+  if (totalCards(deck) !== deckSize) return false;
+  return collectRegulationWarnings(deck, currentFormat, getRegConfig()).length === 0;
+}
+
 function buildExportPayload() {
   deckOrder = syncDeckOrder(deckOrder, deck);
   const grouped = groupDeckBySection(deck, deckOrder);
@@ -611,12 +649,43 @@ function buildExportPayload() {
       });
     }
   }
-  return { format: currentFormat, cards };
+  return { format: currentFormat, deck_size: deckSize, cards };
 }
 
-function canExportDeckCode() {
-  if (totalCards(deck) !== DECK_SIZE) return false;
-  return collectRegulationWarnings(deck, currentFormat, getRegConfig()).length === 0;
+async function exportDeckListImage() {
+  if (!deck.size || !deckImageExportBtn) return;
+
+  deckImageExportBtn.disabled = true;
+  deckImageExportBtn.textContent = "作成中...";
+
+  try {
+    deckOrder = syncDeckOrder(deckOrder, deck);
+    const grouped = groupDeckBySection(deck, deckOrder);
+    const entries = [];
+    for (const section of DECK_SECTIONS) {
+      entries.push(...grouped[section.id]);
+    }
+    const canvas = await renderDeckListImage(entries);
+    const dataUrl = canvas.toDataURL("image/png");
+    if (deckImagePreview) deckImagePreview.src = dataUrl;
+    if (deckImageDownload) {
+      if (deckImageDownload.href?.startsWith("blob:")) {
+        URL.revokeObjectURL(deckImageDownload.href);
+      }
+      deckImageDownload.href = dataUrl;
+      deckImageDownload.download = `deck-list-${deckSize}.png`;
+    }
+    deckImagePanel?.classList.remove("hidden");
+  } catch {
+    alert("デッキ画像の作成に失敗しました");
+  } finally {
+    deckImageExportBtn.textContent = "デッキ画像";
+    deckImageExportBtn.disabled = totalCards(deck) === 0;
+  }
+}
+
+function closeDeckImagePanel() {
+  deckImagePanel?.classList.add("hidden");
 }
 
 async function exportDeckCode() {
@@ -951,6 +1020,7 @@ async function init() {
 
   formatSelect.value = "standard";
   currentFormat = "standard";
+  if (deckSizeSelect) deckSizeSelect.value = String(deckSize);
   searchLimitSelect.value = String(searchLimit);
   updateFormatNote();
   normalizeDeckCards();
@@ -1002,6 +1072,17 @@ deckCodeInput.addEventListener("keydown", (event) => {
 
 deckCodeExportBtn.addEventListener("click", exportDeckCode);
 deckCodeCopyBtn.addEventListener("click", copyDeckCode);
+deckImageExportBtn?.addEventListener("click", exportDeckListImage);
+deckImageCloseBtn?.addEventListener("click", closeDeckImagePanel);
+
+deckSizeSelect?.addEventListener("change", () => {
+  const next = Number(deckSizeSelect.value);
+  deckSize = VALID_DECK_SIZES.includes(next) ? next : DECK_SIZE;
+  deckSizeSelect.value = String(deckSize);
+  saveDeckSize();
+  closeDeckImagePanel();
+  renderDeck();
+});
 
 for (const btn of mobileViewSwitcher?.querySelectorAll(".mobile-view-btn") || []) {
   btn.addEventListener("click", () => setMobileView(btn.dataset.view));

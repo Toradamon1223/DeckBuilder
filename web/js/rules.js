@@ -1,4 +1,6 @@
 export const DECK_SIZE = 60;
+export const HALF_DECK_SIZE = 30;
+export const VALID_DECK_SIZES = [HALF_DECK_SIZE, DECK_SIZE];
 export const NAME_LIMIT = 4;
 
 /** @typedef {'basic_energy'|'normal'|'prism_star'|'radiant'|'ace_spec'} LimitType */
@@ -100,13 +102,15 @@ export function canChangeQty(deck, card, delta) {
 
 /**
  * @param {Map<number, {card: object, qty: number}>} deck
+ * @param {number} [deckSize=DECK_SIZE]
  */
-export function collectWarnings(deck) {
+export function collectWarnings(deck, deckSize = DECK_SIZE) {
   const warnings = [];
   const total = totalCards(deck);
+  const size = VALID_DECK_SIZES.includes(deckSize) ? deckSize : DECK_SIZE;
 
-  if (total > DECK_SIZE) warnings.push(`枚数が${DECK_SIZE}枚を超えています`);
-  if (total < DECK_SIZE && total > 0) warnings.push(`あと${DECK_SIZE - total}枚`);
+  if (total > size) warnings.push(`枚数が${size}枚を超えています`);
+  if (total < size && total > 0) warnings.push(`あと${size - total}枚`);
 
   const names = new Set([...deck.values()].map(({ card }) => card.name));
   for (const name of names) {
