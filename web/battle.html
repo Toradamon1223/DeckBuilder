@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>対戦練習卓 - さぽとなDeckBuilder</title>
   <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=14">
-  <link rel="stylesheet" href="__BASE_PATH__/css/battle.css?v=1">
+  <link rel="stylesheet" href="__BASE_PATH__/css/battle.css?v=2">
 </head>
 <body class="battle-page">
   <header class="header">
@@ -36,39 +36,12 @@
       <button id="battle-new-game" type="button" class="btn btn-ghost" disabled>新規ゲーム</button>
     </div>
     <p id="battle-status" class="status">デッキコードを読み込んでください</p>
+    <p class="battle-howto">
+      たねの出し方: 手札の<strong>たね</strong>（青バッジ）を選ぶ → バトル場／ベンチの枠をタップ。ダブルクリックでも出せます。
+    </p>
   </section>
 
   <main id="battle-main" class="battle-main hidden">
-    <aside class="panel battle-sidebar">
-      <h2>操作</h2>
-      <div class="battle-turn-row">
-        <span id="battle-turn-label">ターン 1</span>
-        <button id="battle-draw" type="button" class="btn btn-primary btn-sm">ドロー</button>
-        <button id="battle-end-turn" type="button" class="btn btn-ghost btn-sm">ターン終了</button>
-      </div>
-      <div id="battle-actions" class="battle-actions"></div>
-      <div class="battle-quick">
-        <h3>クイック</h3>
-        <div class="battle-quick-btns">
-          <button type="button" class="btn btn-ghost btn-sm" data-quick="start-prizes">サイドを置いて開始</button>
-          <button type="button" class="btn btn-ghost btn-sm" data-quick="prize">サイドを取る</button>
-          <button type="button" class="btn btn-ghost btn-sm" data-quick="opp-dmg-30">相手ダメ+30</button>
-          <button type="button" class="btn btn-ghost btn-sm" data-quick="opp-dmg-10">相手ダメ+10</button>
-          <button type="button" class="btn btn-ghost btn-sm" data-quick="opp-heal-30">相手ダメ-30</button>
-          <button type="button" class="btn btn-ghost btn-sm" data-quick="mulligan">マリガン再抽選</button>
-          <button type="button" class="btn btn-ghost btn-sm" data-quick="shuffle-hand">手札を山へ戻してシャッフル</button>
-        </div>
-      </div>
-      <div class="battle-counts">
-        <div>山札 <strong id="count-deck">0</strong></div>
-        <div>サイド <strong id="count-prize">0</strong></div>
-        <div>トラッシュ <strong id="count-discard">0</strong></div>
-        <div>マリガン <strong id="count-mulligan">0</strong></div>
-      </div>
-      <h3>ログ</h3>
-      <ul id="battle-log" class="battle-log"></ul>
-    </aside>
-
     <section class="battle-board">
       <div class="panel battle-zone battle-opponent">
         <div class="zone-title">相手（簡易）</div>
@@ -82,7 +55,7 @@
       </div>
 
       <div class="panel battle-zone">
-        <div class="zone-title">自分のバトル場</div>
+        <div class="zone-title">バトル場</div>
         <div id="zone-active" class="card-row"></div>
       </div>
 
@@ -93,6 +66,7 @@
 
       <div class="panel battle-zone">
         <div class="zone-title">手札 <span id="count-hand" class="zone-count">0</span></div>
+        <div id="battle-hand-actions" class="battle-hand-actions"></div>
         <div id="zone-hand" class="card-row card-row-hand"></div>
       </div>
 
@@ -102,13 +76,43 @@
           <div id="zone-prizes" class="card-row card-row-compact"></div>
         </div>
         <div class="panel battle-zone battle-zone-sm">
-          <div class="zone-title">トラッシュ（直近）</div>
+          <div class="zone-title">トラッシュ</div>
           <div id="zone-discard" class="card-row card-row-compact"></div>
         </div>
       </div>
     </section>
+
+    <aside class="panel battle-sidebar">
+      <h2>操作</h2>
+      <div class="battle-turn-row">
+        <span id="battle-turn-label">ターン 1</span>
+        <button id="battle-draw" type="button" class="btn btn-primary btn-sm">ドロー</button>
+        <button id="battle-end-turn" type="button" class="btn btn-ghost btn-sm">終了</button>
+      </div>
+      <div id="battle-actions" class="battle-actions"></div>
+      <div class="battle-quick">
+        <h3>クイック</h3>
+        <div class="battle-quick-btns">
+          <button type="button" class="btn btn-ghost btn-sm" data-quick="start-prizes">サイド開始</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-quick="prize">サイド取得</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-quick="opp-dmg-30">相手+30</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-quick="opp-dmg-10">相手+10</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-quick="opp-heal-30">相手-30</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-quick="mulligan">マリガン</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-quick="shuffle-hand">手札戻す</button>
+        </div>
+      </div>
+      <div class="battle-counts">
+        <div>山札 <strong id="count-deck">0</strong></div>
+        <div>サイド <strong id="count-prize">0</strong></div>
+        <div>トラッシュ <strong id="count-discard">0</strong></div>
+        <div>マリガン <strong id="count-mulligan">0</strong></div>
+      </div>
+      <h3>ログ</h3>
+      <ul id="battle-log" class="battle-log"></ul>
+    </aside>
   </main>
 
-  <script type="module" src="__BASE_PATH__/js/battle.js?v=1"></script>
+  <script type="module" src="__BASE_PATH__/js/battle.js?v=2"></script>
 </body>
 </html>

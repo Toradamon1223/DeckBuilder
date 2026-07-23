@@ -51,6 +51,7 @@ const els = {
   active: document.getElementById("zone-active"),
   bench: document.getElementById("zone-bench"),
   hand: document.getElementById("zone-hand"),
+  handActions: document.getElementById("battle-hand-actions"),
   prizes: document.getElementById("zone-prizes"),
   discard: document.getElementById("zone-discard"),
   countDeck: document.getElementById("count-deck"),
@@ -96,9 +97,9 @@ function isEnergy(card) {
 }
 
 function isBasic(card) {
-  if (card.evolution_stage === "basic") return true;
-  if (card.evolution_stage && card.evolution_stage !== "basic") return false;
-  return BASIC_NAMES.has(card.name);
+  // Prefer known basics — meta stage can be missing/wrong for new cards
+  if (BASIC_NAMES.has(card.name)) return true;
+  return card.evolution_stage === "basic";
 }
 
 function isPokemon(card) {
@@ -206,9 +207,9 @@ function startOpening() {
   log(`初期手札7枚を引いた`);
   if (!handHasBasic()) {
     log("たねポケモンがない → マリガン可能");
-    setStatus("たねがありません。「マリガン再抽選」か、手札を確認してください");
+    setStatus("たねがありません。「マリガン」を押すか手札を確認");
   } else {
-    setStatus("バトル場にたねを出し、残りたねをベンチへ。その後サイド6枚を置いてください");
+    setStatus("手札の【たね】を選んでバトル場の枠をタップ（ダブルクリックでもOK）");
   }
 }
 
@@ -221,7 +222,7 @@ function doMulligan() {
   if (!handHasBasic()) {
     setStatus("まだたねがありません。もう一度マリガンできます");
   } else {
-    setStatus("たねがあります。バトル場／ベンチに出してください");
+    setStatus("【たね】を選んでバトル場／ベンチ枠へ");
   }
   render();
 }
@@ -306,7 +307,7 @@ function playBasicToActive() {
   state.active = card;
   state.selected = null;
   log(`${card.name} をバトル場に出した`);
-  setStatus("ベンチにたねを出したら「サイドを置いて開始」を押してください");
+  setStatus("続けてベンチ枠へたねを出すか、「サイド開始」");
   render();
 }
 
@@ -481,12 +482,56 @@ function oppDamage(delta) {
   render();
 }
 
+function selectedHandBasic() {
+  const sel = findSelected();
+  if (!sel || sel.zone !== "hand" || !isBasic(sel.card)) return null;
+  return sel.card;
+}
+
+function playBasicToActiveFromUid(uid) {
+  const card = state.hand.find((c) => c.uid === uid);
+  if (!card || !isBasic(card)) return;
+  if (state.active) {
+    setStatus("バトル場にすでにポケモンがいます → ベンチ枠をタップ");
+    return;
+  }
+  state.selected = { zone: "hand", uid };
+  playBasicToActive();
+}
+
+function playBasicToBenchFromUid(uid) {
+  const card = state.hand.find((c) => c.uid === uid);
+  if (!card || !isBasic(card)) return;
+  state.selected = { zone: "hand", uid };
+  playBasicToBench();
+}
+
+function tryAutoPlayBasic(uid) {
+  const card = state.hand.find((c) => c.uid === uid);
+  if (!card || !isBasic(card)) return;
+  if (!state.active) playBasicToActiveFromUid(uid);
+  else playBasicToBenchFromUid(uid);
+}
+
+function renderDropSlot(label, enabled, onClick) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "drop-slot" + (enabled ? " drop-ready" : "");
+  btn.textContent = label;
+  btn.disabled = !enabled;
+  if (enabled) btn.addEventListener("click", onClick);
+  return btn;
+}
+
 function renderCardButton(card, zone, opts = {}) {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "battle-card";
   if (state.selected?.zone === zone && state.selected?.uid === card.uid) {
     btn.classList.add("selected");
+  }
+  if (zone === "hand" && isBasic(card)) {
+    btn.classList.add("is-basic");
   }
   if (opts.faceDown) {
     btn.classList.add("face-down");
@@ -502,6 +547,12 @@ function renderCardButton(card, zone, opts = {}) {
     label.className = "card-label";
     label.textContent = card.name;
     btn.appendChild(label);
+    if (zone === "hand" && isBasic(card)) {
+      const badge = document.createElement("span");
+      badge.className = "basic-badge";
+      badge.textContent = "たね";
+      btn.appendChild(badge);
+    }
     if (card.damage > 0) {
       const d = document.createElement("span");
       d.className = "dmg-badge";
@@ -516,17 +567,23 @@ function renderCardButton(card, zone, opts = {}) {
     }
   }
   btn.addEventListener("click", () => selectCard(zone, card.uid));
+  if (zone === "hand" && isBasic(card)) {
+    btn.title = "クリックで選択 / ダブルクリックで場に出す";
+    btn.addEventListener("dblclick", (ev) => {
+      ev.preventDefault();
+      tryAutoPlayBasic(card.uid);
+    });
+  }
   return btn;
 }
 
-function renderActions() {
-  els.actions.innerHTML = "";
-  const sel = findSelected();
+function fillActionButtons(container, sel) {
+  container.innerHTML = "";
   if (!sel) {
     const p = document.createElement("p");
     p.className = "hint";
-    p.textContent = "カードを選択すると操作が出ます";
-    els.actions.appendChild(p);
+    p.textContent = "手札のたねを選んで、バトル場／ベンチ枠をタップ";
+    container.appendChild(p);
     return;
   }
 
@@ -536,37 +593,38 @@ function renderActions() {
     b.className = primary ? "btn btn-primary btn-sm" : "btn btn-ghost btn-sm";
     b.textContent = label;
     b.addEventListener("click", fn);
-    els.actions.appendChild(b);
+    container.appendChild(b);
   };
 
   const { card, zone } = sel;
   const info = document.createElement("p");
   info.className = "hint";
-  info.textContent = `${card.name}（${zone}）`;
-  els.actions.appendChild(info);
+  info.textContent = `${card.name}`;
+  container.appendChild(info);
 
   if (zone === "hand") {
     if (isBasic(card)) {
-      if (!state.active) add("バトル場に出す", playBasicToActive, true);
-      add("ベンチに出す", playBasicToBench, !state.active);
+      if (!state.active) add("→ バトル場", playBasicToActive, true);
+      if (state.active) add("→ ベンチ", playBasicToBench, true);
+      else add("→ ベンチ", playBasicToBench);
     }
     if (isEnergy(card)) {
       if (state.active) {
-        add(`エネをバトル場（${state.active.name}）へ`, () =>
+        add(`エネ→${state.active.name}`, () =>
           attachEnergyTo("active", state.active.uid), true);
       }
       state.bench.forEach((b) => {
-        add(`エネをベンチ（${b.name}）へ`, () => attachEnergyTo("bench", b.uid));
+        add(`エネ→${b.name}`, () => attachEnergyTo("bench", b.uid));
       });
     }
     if (EVOLVES_FROM[card.name]) {
       if (state.active && canEvolveOnto(card, state.active)) {
-        add(`進化: バトル場の${state.active.name}`, () =>
+        add(`進化→${state.active.name}`, () =>
           evolveOnto("active", state.active.uid), true);
       }
       state.bench.forEach((b) => {
         if (canEvolveOnto(card, b)) {
-          add(`進化: ベンチの${b.name}`, () => evolveOnto("bench", b.uid));
+          add(`進化→${b.name}`, () => evolveOnto("bench", b.uid));
         }
       });
     }
@@ -574,26 +632,66 @@ function renderActions() {
       ["goods", "support", "stadium", "tool"].includes(card.deck_section) ||
       (!isPokemon(card) && !isEnergy(card))
     ) {
-      add("使う（トラッシュへ）", useTrainer, true);
+      add("使う", useTrainer, true);
     }
-    add("トラッシュする", discardSelected);
+    add("トラッシュ", discardSelected);
   }
 
   if (zone === "active" || zone === "bench") {
-    add("ダメ +10", () => adjustDamage(zone, card.uid, 10));
-    add("ダメ +30", () => adjustDamage(zone, card.uid, 30));
-    add("ダメ -10", () => adjustDamage(zone, card.uid, -10));
-    add("ダメ -30", () => adjustDamage(zone, card.uid, -30));
+    add("ダメ+10", () => adjustDamage(zone, card.uid, 10));
+    add("ダメ+30", () => adjustDamage(zone, card.uid, 30));
+    add("ダメ-10", () => adjustDamage(zone, card.uid, -10));
     if (zone === "bench") {
       const idx = state.bench.findIndex((c) => c.uid === card.uid);
-      add("バトル場と交代", () => retreatToBench(idx), true);
+      add("バトルへ", () => retreatToBench(idx), true);
     }
-    add("トラッシュする", discardSelected);
+    add("トラッシュ", discardSelected);
+  }
+}
+
+function renderActions() {
+  const sel = findSelected();
+  fillActionButtons(els.actions, sel);
+  if (els.handActions) {
+    if (sel?.zone === "hand") fillActionButtons(els.handActions, sel);
+    else els.handActions.innerHTML = "";
   }
 }
 
 function renderZone(el, cards, zone, opts = {}) {
   el.innerHTML = "";
+  const handBasic = selectedHandBasic();
+
+  if (zone === "active" && !cards.length) {
+    el.appendChild(
+      renderDropSlot(
+        handBasic ? "ここにバトル場へ" : "空（たねを選択）",
+        Boolean(handBasic && !state.active),
+        () => playBasicToActiveFromUid(handBasic.uid),
+      ),
+    );
+    return;
+  }
+
+  if (zone === "bench") {
+    for (const card of cards) {
+      el.appendChild(renderCardButton(card, zone, opts));
+    }
+    if (cards.length < 5) {
+      el.appendChild(
+        renderDropSlot(
+          handBasic && state.active ? "ベンチへ" : "空枠",
+          Boolean(handBasic && state.active && state.bench.length < 5),
+          () => playBasicToBenchFromUid(handBasic.uid),
+        ),
+      );
+    }
+    if (!cards.length && !(handBasic && state.active)) {
+      // drop slot already added; ok
+    }
+    return;
+  }
+
   if (!cards.length) {
     const empty = document.createElement("div");
     empty.className = "empty-slot";
