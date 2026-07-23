@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>対戦練習卓 - さぽとなDeckBuilder</title>
   <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=14">
-  <link rel="stylesheet" href="__BASE_PATH__/css/battle.css?v=5">
+  <link rel="stylesheet" href="__BASE_PATH__/css/battle.css?v=6">
 </head>
 <body class="battle-page">
   <header class="header">
@@ -113,6 +113,20 @@
     </aside>
   </main>
 
-  <script type="module" src="__BASE_PATH__/js/battle.js?v=5"></script>
+  <div id="deck-search-modal" class="deck-search-modal hidden" role="dialog" aria-modal="true" aria-labelledby="deck-search-title">
+    <div class="deck-search-panel">
+      <div class="deck-search-head">
+        <h2 id="deck-search-title">山札から選ぶ</h2>
+        <p id="deck-search-hint" class="deck-search-hint"></p>
+      </div>
+      <div id="deck-search-list" class="deck-search-list"></div>
+      <div class="deck-search-foot">
+        <span id="deck-search-count" class="deck-search-count"></span>
+        <button type="button" id="deck-search-skip" class="btn btn-ghost btn-sm">選ばずに閉じる（山札を切る）</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="__BASE_PATH__/js/battle.js?v=6"></script>
 </body>
 </html>

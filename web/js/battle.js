@@ -23,6 +23,56 @@ const EVOLVES_FROM = {
 const MAX_BENCH = 5;
 const BENCH_SLOTS = 8; // visual slots (official play is max 5)
 
+const SUPPORT_NAMES = new Set([
+  "ロケット団のラムダ",
+  "ボスの指令",
+  "ジャッジマン",
+  "ジプソ",
+]);
+
+/** Automated deck-search helpers for known trainers in this practice table. */
+const DECK_SEARCH_EFFECTS = {
+  ロケット団のレシーバー: {
+    title: "ロケット団のレシーバー",
+    hint: "山札から、名前に「ロケット団」とつくサポートを1枚選ぶ（相手に見せて手札へ → 山札を切る）",
+    max: 1,
+    shuffleAfter: true,
+    reveal: true,
+    filter: (card) =>
+      (card.deck_section === "support" || SUPPORT_NAMES.has(card.name)) &&
+      (card.name || "").includes("ロケット団"),
+  },
+  ハイパーボール: {
+    title: "ハイパーボール",
+    hint: "山札からポケモンを1枚選んで手札へ（山札を切る）。手札からのトラッシュは手動で。",
+    max: 1,
+    shuffleAfter: true,
+    reveal: false,
+    filter: (card) => isPokemonCard(card),
+  },
+  ロケット団のラムダ: {
+    title: "ロケット団のラムダ",
+    hint: "山札からグッズ（ACE SPEC含む）を1枚選んで手札へ → 山札を切る",
+    max: 1,
+    shuffleAfter: true,
+    reveal: false,
+    filter: (card) =>
+      card.deck_section === "goods" ||
+      card.limit_type === "ace_spec" ||
+      ["プレシャスキャリー", "なかよしポフィン", "ロケット団のレシーバー", "ハイパーボール", "ポケモンいれかえ", "夜のタンカ", "エネルギーリサイクル"].includes(
+        card.name,
+      ),
+  },
+};
+
+function isPokemonCard(card) {
+  if (card.deck_section === "pokemon") return true;
+  if (BASIC_NAMES.has(card.name) || EVOLVES_FROM[card.name]) return true;
+  if (isEnergy(card)) return false;
+  if (card.deck_section && card.deck_section !== "pokemon") return false;
+  return false;
+}
+
 const HP_HINT = {
   モグリュー: 70,
   ダンバル: 70,
@@ -39,6 +89,8 @@ let uidSeq = 1;
 let catalog = []; // expanded card templates from loaded deck
 let state = null;
 let actionArmTimer = null;
+/** @type {null | { effectKey: string, effect: object, matches: object[] }} */
+let deckSearch = null;
 
 const els = {
   code: document.getElementById("battle-deck-code"),
@@ -65,6 +117,12 @@ const els = {
   countDiscard: document.getElementById("count-discard"),
   countMulligan: document.getElementById("count-mulligan"),
   countHand: document.getElementById("count-hand"),
+  searchModal: document.getElementById("deck-search-modal"),
+  searchTitle: document.getElementById("deck-search-title"),
+  searchHint: document.getElementById("deck-search-hint"),
+  searchList: document.getElementById("deck-search-list"),
+  searchCount: document.getElementById("deck-search-count"),
+  searchSkip: document.getElementById("deck-search-skip"),
 };
 
 function shuffle(arr) {
@@ -370,6 +428,10 @@ function discardSelected() {
 function useTrainer() {
   const sel = findSelected();
   if (!sel || sel.zone !== "hand") return;
+  if (deckSearch) {
+    setStatus("山札サーチ中です");
+    return;
+  }
   const card = sel.card;
   const section = card.deck_section;
   const isStadium =
@@ -400,9 +462,93 @@ function useTrainer() {
   }
   state.discard.push(used);
   state.selected = null;
-  log(`${used.name} を使った（効果は自分で解決）`);
-  setStatus(`${used.name} の効果を解決してください`);
+  log(`${used.name} を使った`);
+
+  const effect = DECK_SEARCH_EFFECTS[used.name];
+  if (effect) {
+    render();
+    openDeckSearch(used.name, effect);
+    return;
+  }
+
+  setStatus(`${used.name} の効果は手動で解決してください`);
   render();
+}
+
+function openDeckSearch(effectKey, effect) {
+  const matches = state.deck.filter((c) => effect.filter(c));
+  deckSearch = { effectKey, effect, matches };
+  els.searchTitle.textContent = effect.title || effectKey;
+  els.searchHint.textContent = effect.hint || "";
+  els.searchCount.textContent = `候補 ${matches.length} 枚 / 山札 ${state.deck.length} 枚`;
+  els.searchList.innerHTML = "";
+
+  if (!matches.length) {
+    const empty = document.createElement("div");
+    empty.className = "deck-search-empty";
+    empty.textContent = "条件に合うカードが山札にありません";
+    els.searchList.appendChild(empty);
+  } else {
+    for (const card of matches) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "deck-search-item";
+      const img = document.createElement("img");
+      img.src = cardImageSrc(card);
+      img.alt = card.name;
+      img.loading = "lazy";
+      const name = document.createElement("span");
+      name.textContent = card.name;
+      btn.appendChild(img);
+      btn.appendChild(name);
+      btn.addEventListener("click", () => pickFromDeckSearch(card.uid));
+      els.searchList.appendChild(btn);
+    }
+  }
+
+  els.searchModal.classList.remove("hidden");
+  setStatus(`${effect.title}: 山札から選んでください`);
+}
+
+function closeDeckSearch({ shouldShuffle = false, pickedName = "" } = {}) {
+  els.searchModal.classList.add("hidden");
+  els.searchList.innerHTML = "";
+  deckSearch = null;
+  if (shouldShuffle) {
+    state.deck = shuffle(state.deck);
+    log("山札をシャッフルした");
+  }
+  if (pickedName) {
+    setStatus(`${pickedName} を手札に加えた`);
+  } else if (shouldShuffle) {
+    setStatus("カードを選ばず山札を切った");
+  }
+  render();
+}
+
+function pickFromDeckSearch(uid) {
+  if (!deckSearch) return;
+  const { effect } = deckSearch;
+  const idx = state.deck.findIndex((c) => c.uid === uid);
+  if (idx < 0) {
+    setStatus("選んだカードが山札にありません");
+    return;
+  }
+  const [picked] = state.deck.splice(idx, 1);
+  state.hand.push(picked);
+  if (effect.reveal) {
+    log(`${picked.name} を相手に見せて手札に加えた`);
+  } else {
+    log(`${picked.name} を手札に加えた`);
+  }
+  closeDeckSearch({ shouldShuffle: Boolean(effect.shuffleAfter), pickedName: picked.name });
+}
+
+function skipDeckSearch() {
+  if (!deckSearch) return;
+  const { effect } = deckSearch;
+  log(`${effect.title}: カードを選ばなかった`);
+  closeDeckSearch({ shouldShuffle: Boolean(effect.shuffleAfter) });
 }
 
 function attachEnergyTo(targetZone, targetUid) {
@@ -654,7 +800,9 @@ function fillActionButtons(container, sel) {
       const label =
         card.deck_section === "stadium" || (card.name || "").includes("マウンテン")
           ? "スタジアムに置く"
-          : "使う";
+          : DECK_SEARCH_EFFECTS[card.name]
+            ? "使う（山札サーチ）"
+            : "使う";
       add(label, useTrainer, true);
     }
     add("トラッシュ", discardSelected);
@@ -891,10 +1039,13 @@ if (els.deckPile) {
   });
 }
 els.code.value = PRESET_CODE;
+if (els.searchSkip) {
+  els.searchSkip.addEventListener("click", skipDeckSearch);
+}
 
 document.querySelectorAll("[data-quick]").forEach((btn) => {
   btn.addEventListener("click", () => {
-    if (!state) return;
+    if (!state || deckSearch) return;
     const q = btn.getAttribute("data-quick");
     if (q === "start-prizes") {
       setPrizesIfReady();
