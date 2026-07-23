@@ -11,7 +11,7 @@ import {
 } from "./rules.js";
 import { formatCardName } from "./cardText.js";
 import { createCardThumb } from "./cardImage.js";
-import { renderDeckListImage } from "./deckImage.js?v=4";
+import { renderDeckListImage } from "./deckImage.js?v=5";
 import {
   buildBanIndex,
   collectRegulationWarnings,
@@ -693,10 +693,16 @@ async function paintDeckImageWindow(win, entries) {
   if (!img) return;
 
   const viewport = measureDeckImageViewport(win);
-  const canvas = await renderDeckListImage(entries, viewport);
+  const canvas = await renderDeckListImage(entries, {
+    ...viewport,
+    pixelRatio: win.devicePixelRatio || window.devicePixelRatio || 2,
+  });
+  // High-res bitmap; CSS max-width/max-height scales it down cleanly.
   img.src = canvas.toDataURL("image/png");
-  img.width = canvas.width;
-  img.height = canvas.height;
+  img.removeAttribute("width");
+  img.removeAttribute("height");
+  img.style.width = "auto";
+  img.style.height = "auto";
 }
 
 /**

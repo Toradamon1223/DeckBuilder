@@ -124,7 +124,7 @@ export function chooseDeckImageGrid(count, maxWidth, maxHeight) {
 
 /**
  * @param {Array<{card: object, qty: number}>} entries
- * @param {{ maxWidth?: number, maxHeight?: number }} [options]
+ * @param {{ maxWidth?: number, maxHeight?: number, pixelRatio?: number }} [options]
  * @returns {Promise<HTMLCanvasElement>}
  */
 export async function renderDeckListImage(entries, options = {}) {
@@ -148,11 +148,34 @@ export async function renderDeckListImage(entries, options = {}) {
     maxHeight
   );
 
+  // Draw sharper than CSS size so downscaling on screen isn't jaggy.
+  const dpr = Number(options.pixelRatio) || window.devicePixelRatio || 1;
+  let scale = Math.max(2, Math.min(3, dpr));
+  // Keep each card at least ~110px wide in the bitmap.
+  if (cardW * scale < 110) {
+    scale = Math.min(4, 110 / Math.max(1, cardW));
+  }
+  // Avoid oversized canvases on some browsers.
+  const maxSide = 8192;
+  if (width * scale > maxSide || height * scale > maxSide) {
+    scale = Math.min(scale, maxSide / width, maxSide / height);
+  }
+  scale = Math.max(1.5, scale);
+
   const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+  canvas.dataset.cssWidth = String(width);
+  canvas.dataset.cssHeight = String(height);
+
   const ctx = canvas.getContext("2d");
   if (!ctx) return canvas;
+
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  if ("imageSmoothingQuality" in ctx) {
+    ctx.imageSmoothingQuality = "high";
+  }
 
   ctx.fillStyle = "#0b1220";
   ctx.fillRect(0, 0, width, height);
@@ -176,9 +199,9 @@ export async function renderDeckListImage(entries, options = {}) {
     ctx.fillRect(x, y, cardW, cardH);
 
     if (img) {
-      const scale = Math.min(cardW / img.naturalWidth, cardH / img.naturalHeight);
-      const dw = img.naturalWidth * scale;
-      const dh = img.naturalHeight * scale;
+      const fit = Math.min(cardW / img.naturalWidth, cardH / img.naturalHeight);
+      const dw = img.naturalWidth * fit;
+      const dh = img.naturalHeight * fit;
       const dx = x + (cardW - dw) / 2;
       const dy = y + (cardH - dh) / 2;
       ctx.drawImage(img, dx, dy, dw, dh);
