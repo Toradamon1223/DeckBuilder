@@ -11,6 +11,10 @@ OUT_PATH = Path("data/set_regulation_map.json")
 
 # Longest prefix first
 PREFIX_MARKS = [
+    ("M6", "I"),
+    ("M5", "I"),
+    ("M4", "I"),
+    ("M3", "I"),
     ("M2", "I"),
     ("M1", "I"),
     ("MA", "I"),

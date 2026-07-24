@@ -227,9 +227,9 @@ class CardScraper:
         raise RuntimeError(f"card_id={card_id}: {last_error}")
 
     @staticmethod
-    def parse_card(card_id: int, html: str) -> CardRecord | None:
-        h1_match = H1_RE.search(html)
-        og_match = OG_TITLE_RE.search(html)
+    def parse_card(card_id: int, page_html: str) -> CardRecord | None:
+        h1_match = H1_RE.search(page_html)
+        og_match = OG_TITLE_RE.search(page_html)
         h1 = h1_match.group(1).strip() if h1_match else ""
         og_title = og_match.group(1).strip() if og_match else ""
         h1 = html.unescape(h1)
@@ -240,8 +240,8 @@ class CardScraper:
         if "カード詳細" not in og_title and not h1:
             return None
 
-        set_match = SET_CODE_RE.search(html)
-        number_match = NUMBER_RE.search(html)
+        set_match = SET_CODE_RE.search(page_html)
+        number_match = NUMBER_RE.search(page_html)
         set_code = set_match.group(1).strip() if set_match else ""
         card_number = number_match.group(1) if number_match else ""
         card_total = number_match.group(2) if number_match else ""
