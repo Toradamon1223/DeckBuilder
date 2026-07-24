@@ -11,7 +11,7 @@ import {
 } from "./rules.js";
 import { formatCardName } from "./cardText.js";
 import { createCardThumb } from "./cardImage.js";
-import { renderDeckListImage } from "./deckImage.js?v=5";
+import { renderDeckListImage } from "./deckImage.js?v=6";
 import {
   buildBanIndex,
   collectRegulationWarnings,
@@ -674,9 +674,10 @@ async function exportDeckListImage() {
  * @param {Window} win
  */
 function measureDeckImageViewport(win) {
-  const vv = win.visualViewport;
-  const width = Math.floor((vv?.width || win.innerWidth || win.screen.availWidth) - 8);
-  const height = Math.floor((vv?.height || win.innerHeight || win.screen.availHeight) - 48);
+  // Use layout viewport only. visualViewport changes on pinch-zoom and
+  // must not affect badge/card sizing.
+  const width = Math.floor((win.innerWidth || win.screen.availWidth) - 8);
+  const height = Math.floor((win.innerHeight || win.screen.availHeight) - 48);
   return {
     maxWidth: Math.max(240, width),
     maxHeight: Math.max(180, height),
@@ -795,16 +796,38 @@ async function openDeckImageWindow(entries) {
   if (!win.__deckImageBound) {
     win.__deckImageBound = true;
     let timer = null;
+    let last = {
+      w: win.innerWidth || 0,
+      h: win.innerHeight || 0,
+      landscape: (win.innerWidth || 0) >= (win.innerHeight || 0),
+    };
+
+    const shouldRerender = () => {
+      const w = win.innerWidth || 0;
+      const h = win.innerHeight || 0;
+      const landscape = w >= h;
+      // Pinch-zoom must not redraw. Only orientation / real window size changes.
+      if (landscape !== last.landscape) return true;
+      if (Math.abs(w - last.w) < 80 && Math.abs(h - last.h) < 80) return false;
+      return true;
+    };
+
     const schedule = () => {
       if (timer) win.clearTimeout(timer);
       timer = win.setTimeout(() => {
+        if (win.closed || !shouldRerender()) return;
+        last = {
+          w: win.innerWidth || 0,
+          h: win.innerHeight || 0,
+          landscape: (win.innerWidth || 0) >= (win.innerHeight || 0),
+        };
         paintDeckImageWindow(win, entries).catch(() => {});
-      }, 180);
+      }, 200);
     };
-    win.addEventListener("resize", schedule);
+
     win.addEventListener("orientationchange", schedule);
-    win.visualViewport?.addEventListener("resize", schedule);
     win.screen?.orientation?.addEventListener?.("change", schedule);
+    win.addEventListener("resize", schedule);
   }
 
   try {

@@ -184,9 +184,11 @@ export async function renderDeckListImage(entries, options = {}) {
     limited.map(({ card }) => loadImage(canvasImageSrc(card)))
   );
 
-  const fontSize = Math.max(9, Math.round(cardH * 0.055));
-  const badgeH = Math.max(14, Math.round(fontSize * 1.2));
-  const badgePadX = Math.max(5, Math.round(fontSize * 0.45));
+  // Keep qty badge at a fixed CSS size so pinch-zoom / grid changes don't
+  // make the number look bigger or smaller relative to itself.
+  const fontSize = 11;
+  const badgeH = 15;
+  const badgePadX = 6;
 
   limited.forEach(({ qty }, index) => {
     const col = index % cols;
