@@ -72,6 +72,57 @@ const deckImageExportBtn = document.getElementById("deck-image-export");
 const deckExportPanel = document.getElementById("deck-export-panel");
 const deckCodeOutput = document.getElementById("deck-code-output");
 const deckCodeCopyBtn = document.getElementById("deck-code-copy");
+const deckCodeSendBtn = document.getElementById("deck-code-send");
+const deckBridgeStatus = document.getElementById("deck-bridge-status");
+
+const DECK_CODE_MESSAGE_TYPE = "sapotona-deck-code";
+
+function bridgeParamsFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const bridge = params.get("bridge") === "1";
+    const parentOrigin = (params.get("parent_origin") || "").trim();
+    return { bridge, parentOrigin };
+  } catch (_) {
+    return { bridge: false, parentOrigin: "" };
+  }
+}
+
+const bridgeState = bridgeParamsFromUrl();
+
+function canSendDeckCodeToOpener() {
+  return Boolean(bridgeState.bridge && window.opener && !window.opener.closed && bridgeState.parentOrigin);
+}
+
+function syncBridgeSendButton() {
+  if (!deckCodeSendBtn) return;
+  const show = canSendDeckCodeToOpener() && Boolean(deckCodeOutput?.value?.trim());
+  deckCodeSendBtn.classList.toggle("hidden", !show);
+}
+
+function sendDeckCodeToOpener(code, { auto = false } = {}) {
+  const trimmed = String(code || "").trim();
+  if (!trimmed || !canSendDeckCodeToOpener()) return false;
+  try {
+    window.opener.postMessage(
+      { type: DECK_CODE_MESSAGE_TYPE, code: trimmed },
+      bridgeState.parentOrigin,
+    );
+    if (deckBridgeStatus) {
+      deckBridgeStatus.classList.remove("hidden");
+      deckBridgeStatus.textContent = auto
+        ? "大会画面へデッキコードを送りました。このウィンドウを閉じて登録を完了してください。"
+        : "大会画面へデッキコードを送りました。";
+    }
+    return true;
+  } catch (_) {
+    if (deckBridgeStatus) {
+      deckBridgeStatus.classList.remove("hidden");
+      deckBridgeStatus.textContent = "大会画面への送信に失敗しました。コードをコピーして貼り付けてください。";
+    }
+    return false;
+  }
+}
 
 /** @type {Map<number, { card: object, qty: number }>} */
 let deckState = loadDeckState();
@@ -867,6 +918,8 @@ async function exportDeckCode() {
 
     deckCodeOutput.value = data.code || "";
     deckExportPanel.classList.remove("hidden");
+    syncBridgeSendButton();
+    if (data.code) sendDeckCodeToOpener(data.code, { auto: true });
   } catch {
     alert("デッキコードの取得に失敗しました");
   } finally {
@@ -1157,6 +1210,15 @@ async function hydrateDeckMeta() {
   deckOrder = syncDeckOrder(deckOrder, deck);
 }
 
+function formatFromUrl() {
+  try {
+    const raw = new URLSearchParams(window.location.search).get("format") || "";
+    return VALID_FORMATS.includes(raw) ? raw : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 async function init() {
   syncMobileLayout();
   mobileMq.addEventListener("change", syncMobileLayout);
@@ -1167,14 +1229,22 @@ async function init() {
   await loadBanListOptions();
   await applySelectedBanList();
 
-  formatSelect.value = "standard";
-  currentFormat = "standard";
+  const initialFormat = formatFromUrl() || "standard";
+  formatSelect.value = initialFormat;
+  currentFormat = initialFormat;
   if (deckSizeSelect) deckSizeSelect.value = String(deckSize);
   searchLimitSelect.value = String(searchLimit);
   updateFormatNote();
   normalizeDeckCards();
   await hydrateDeckMeta();
   renderDeck();
+  syncBridgeSendButton();
+  if (bridgeState.bridge && deckBridgeStatus) {
+    deckBridgeStatus.classList.remove("hidden");
+    deckBridgeStatus.textContent = canSendDeckCodeToOpener()
+      ? "大会画面から開かれています。「デッキコード表示」すると自動で大会画面へ送ります。"
+      : "大会画面から開かれましたが、元の画面との接続を確認できません。コードをコピーして貼り付けてください。";
+  }
 }
 
 formatSelect.addEventListener("change", () => {
@@ -1221,6 +1291,9 @@ deckCodeInput.addEventListener("keydown", (event) => {
 
 deckCodeExportBtn.addEventListener("click", exportDeckCode);
 deckCodeCopyBtn.addEventListener("click", copyDeckCode);
+deckCodeSendBtn?.addEventListener("click", () => {
+  sendDeckCodeToOpener(deckCodeOutput?.value || "", { auto: false });
+});
 deckImageExportBtn?.addEventListener("click", exportDeckListImage);
 
 deckSizeSelect?.addEventListener("change", () => {

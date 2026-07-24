@@ -103,7 +103,9 @@
         <div class="deck-export-row">
           <input id="deck-code-output" type="text" readonly spellcheck="false">
           <button id="deck-code-copy" type="button" class="btn btn-ghost btn-sm">コピー</button>
+          <button id="deck-code-send" type="button" class="btn btn-primary btn-sm hidden">大会画面へ送る</button>
         </div>
+        <p id="deck-bridge-status" class="status hidden" style="margin-top:8px"></p>
       </div>
       <p id="deck-warning" class="warning hidden"></p>
       <div id="deck-list" class="deck-sections"></div>
@@ -121,6 +123,6 @@
     </button>
   </nav>
 
-  <script type="module" src="__BASE_PATH__/js/app.js?v=25"></script>
+  <script type="module" src="__BASE_PATH__/js/app.js?v=27"></script>
 </body>
 </html>
