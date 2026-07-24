@@ -737,11 +737,19 @@ body {
   margin-bottom: 0.5rem;
 }
 
+.deck-header h2 {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  margin: 0;
+}
+
 .deck-summary {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.6rem;
+  min-width: 0;
+  justify-content: flex-end;
 }
 
 .deck-export-panel {
