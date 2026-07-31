@@ -214,27 +214,19 @@ export function isLegalInFormat(card, format, config) {
 
     // 同名ルール: 選んだマークにその名前の版があれば、トレーナーズ等は全版OK
     // （博士の研究のオーキド／アララギ版なども同名として扱う）
+    // ※ホワイトリスト単独では通さない（D 以前の版が特殊に混ざるため）
     if (kind !== "pokemon" && nameHasAllowedMark(name, allowed, config)) {
       return true;
     }
 
-    // 公式の同名再録トレーナー等（ボスの指令など）
-    if (kind !== "pokemon" && config.trainerWhitelist.has(name)) {
-      return true;
-    }
-
     // マーク欠損カード向け: 公式スタンダード使用可かつ H/I/J を含む指定なら可
+    // （エクストラ合法だけのフォールバックは使わない。BW/XY など無印が D〜J に紛れるため）
     if (
       !mark &&
       isOfficialFormatLegal(enriched, "standard", config) === true &&
       ["H", "I", "J"].some((m) => allowed.has(m))
     ) {
       return true;
-    }
-
-    // マーク欠損カード向け: 公式エクストラ使用可
-    if (!mark && isOfficialFormatLegal(enriched, "extra", config) === true) {
-      return [...allowed].some((m) => REGULATION_MARKS.includes(m));
     }
 
     return false;

@@ -1041,22 +1041,18 @@ class Handler(SimpleHTTPRequestHandler):
             return True
 
         # 同名ルール: 選んだマークにその名前の版があれば、トレーナーズ等は全版OK
+        # ※ホワイトリスト単独では通さない（D 以前の版が特殊に混ざるため）
         if not Handler._is_pokemon_card(card, name):
             name_marks = config.get("nameRegulationMarks") or {}
             for name_mark in name_marks.get(name) or []:
                 if name_mark in marks:
                     return True
 
-        whitelist = set(config.get("trainerWhitelist", []))
-        if name in whitelist:
-            return True
-
+        # マーク欠損: スタンダード合法かつ H/I/J 指定時のみ
+        # （エクストラ合法フォールバックは使わない。無印カードが特殊 D〜J に紛れるため）
         if not mark:
             official_std = is_official_format_legal(card_id, "standard", config)
             if official_std and marks.intersection({"H", "I", "J"}):
-                return True
-            official_extra = is_official_format_legal(card_id, "extra", config)
-            if official_extra and marks.intersection(set("ABCDEFGHIJ")):
                 return True
 
         return False
