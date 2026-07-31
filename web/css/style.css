@@ -590,9 +590,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.35rem;
   width: 100%;
-  margin-top: 0.15rem;
+  margin-top: 0.2rem;
 }
 
 .deck-order-row,
@@ -600,18 +600,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.2rem;
+  gap: 0.35rem;
 }
 
 .deck-item-controls .btn-icon {
-  width: 1.7rem;
-  height: 1.7rem;
-  font-size: 0.85rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1.05rem;
 }
 
 .deck-item-controls .qty-value {
-  min-width: 1.1rem;
-  font-size: 0.9rem;
+  min-width: 1.35rem;
+  font-size: 1rem;
   text-align: center;
 }
 
@@ -640,14 +640,14 @@ body {
 }
 
 .deck-qty-controls .btn-icon {
-  width: 1.7rem;
-  height: 1.7rem;
-  font-size: 0.85rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1.05rem;
 }
 
 .deck-qty-controls .qty-value {
-  min-width: 1.1rem;
-  font-size: 0.9rem;
+  min-width: 1.35rem;
+  font-size: 1rem;
 }
 
 .card-meta {
@@ -951,16 +951,22 @@ body {
     gap: 0.4rem;
   }
 
-  .deck-item-controls .btn-icon {
-    width: 1.55rem;
-    height: 1.55rem;
-    font-size: 0.75rem;
+  .deck-item-controls .btn-icon,
+  .deck-qty-controls .btn-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.15rem;
   }
 
-  .deck-qty-controls .btn-icon {
-    width: 1.55rem;
-    height: 1.55rem;
-    font-size: 0.75rem;
+  .deck-item-controls .qty-value,
+  .deck-qty-controls .qty-value {
+    min-width: 1.5rem;
+    font-size: 1.05rem;
+  }
+
+  .deck-order-row,
+  .deck-qty-row {
+    gap: 0.45rem;
   }
 
   .qty-controls {

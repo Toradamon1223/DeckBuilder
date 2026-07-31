@@ -640,7 +640,7 @@ async function addCard(card) {
   deck.set(withMeta.card_id, { card: enriched, qty: qty + 1 });
   deckOrder = syncDeckOrder(deckOrder, deck);
   renderDeck();
-  if (searchInput.value.trim()) runSearch(searchInput.value);
+  if (searchInput.value.trim()) runSearch(searchInput.value, { keepPage: true });
 }
 
 function changeQty(cardId, delta) {
@@ -660,13 +660,13 @@ function changeQty(cardId, delta) {
     entry.qty = next;
   }
   renderDeck();
-  if (searchInput.value.trim()) runSearch(searchInput.value);
+  if (searchInput.value.trim()) runSearch(searchInput.value, { keepPage: true });
 }
 
 function removeCard(cardId) {
   deck.delete(cardId);
   renderDeck();
-  if (searchInput.value.trim()) runSearch(searchInput.value);
+  if (searchInput.value.trim()) runSearch(searchInput.value, { keepPage: true });
 }
 
 function clearDeck() {
@@ -675,7 +675,7 @@ function clearDeck() {
   deck = new Map();
   deckOrder = createEmptyDeckOrder();
   renderDeck();
-  if (searchInput.value.trim()) runSearch(searchInput.value);
+  if (searchInput.value.trim()) runSearch(searchInput.value, { keepPage: true });
 }
 
 function canExportDeckCode() {
