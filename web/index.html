@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>さぽとなDeckBuilder</title>
-  <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=15">
+  <link rel="stylesheet" href="__BASE_PATH__/css/style.css?v=16">
 </head>
 <body>
   <header class="header">
@@ -98,6 +98,10 @@
           <button id="clear-deck" type="button" class="btn btn-ghost">全削除</button>
         </div>
       </div>
+      <div id="deck-return-row" class="deck-return-row hidden">
+        <button id="deck-code-return" type="button" class="btn btn-primary">大会画面に戻る</button>
+        <p id="deck-bridge-status" class="status" style="margin-top:8px"></p>
+      </div>
       <div id="deck-export-panel" class="deck-export-panel hidden">
         <label for="deck-code-output">デッキコード</label>
         <div class="deck-export-row">
@@ -105,10 +109,6 @@
           <button id="deck-code-copy" type="button" class="btn btn-ghost btn-sm">コピー</button>
           <button id="deck-code-send" type="button" class="btn btn-ghost btn-sm hidden">大会画面へ送る</button>
         </div>
-        <div id="deck-return-row" class="deck-return-row hidden">
-          <button id="deck-code-return" type="button" class="btn btn-primary">大会画面に戻る</button>
-        </div>
-        <p id="deck-bridge-status" class="status hidden" style="margin-top:8px"></p>
       </div>
       <p id="deck-warning" class="warning hidden"></p>
       <div id="deck-list" class="deck-sections"></div>
@@ -126,6 +126,6 @@
     </button>
   </nav>
 
-  <script type="module" src="__BASE_PATH__/js/app.js?v=27"></script>
+  <script type="module" src="__BASE_PATH__/js/app.js?v=28"></script>
 </body>
 </html>

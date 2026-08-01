@@ -92,8 +92,25 @@ function bridgeParamsFromUrl() {
 
 const bridgeState = bridgeParamsFromUrl();
 
+function hasTournamentOpener() {
+  return Boolean(window.opener && !window.opener.closed);
+}
+
+/** 大会画面から開いた／opener があるセッション */
+function isBridgeSession() {
+  return Boolean(bridgeState.bridge || hasTournamentOpener());
+}
+
 function canSendDeckCodeToOpener() {
-  return Boolean(bridgeState.bridge && window.opener && !window.opener.closed && bridgeState.parentOrigin);
+  return Boolean(
+    isBridgeSession() &&
+      hasTournamentOpener() &&
+      (bridgeState.parentOrigin || (typeof location !== "undefined" && location.origin)),
+  );
+}
+
+function bridgeTargetOrigin() {
+  return bridgeState.parentOrigin || window.location.origin;
 }
 
 function syncBridgeSendButton() {
@@ -103,18 +120,37 @@ function syncBridgeSendButton() {
 }
 
 function syncBridgeReturnButton({ ready = false } = {}) {
-  if (!deckReturnRow || !bridgeState.bridge) return;
-  const show = ready || Boolean(deckCodeOutput?.value?.trim());
+  if (!deckReturnRow) return;
+  const show = isBridgeSession();
   deckReturnRow.classList.toggle("hidden", !show);
+  if (ready && deckExportPanel) {
+    deckExportPanel.classList.remove("hidden");
+  }
 }
 
 function focusTournamentOpener() {
-  if (!window.opener || window.opener.closed) return false;
+  if (!hasTournamentOpener()) return false;
   try {
     window.opener.focus();
     return true;
   } catch (_) {
     return false;
+  }
+}
+
+function revealDeckExportUi() {
+  try {
+    if (typeof setMobileView === "function") setMobileView("deck");
+  } catch (_) {
+    /* ignore */
+  }
+  if (deckExportPanel) {
+    deckExportPanel.classList.remove("hidden");
+    try {
+      deckExportPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch (_) {
+      /* ignore */
+    }
   }
 }
 
@@ -127,7 +163,6 @@ function returnToTournamentScreen() {
   }
   // タブだと close できないことがある
   if (!window.closed && deckBridgeStatus) {
-    deckBridgeStatus.classList.remove("hidden");
     deckBridgeStatus.textContent = focused
       ? "大会画面を前面にしました。このタブを閉じて登録を完了してください。"
       : "このタブを閉じて大会画面へ戻り、登録を完了してください。";
@@ -140,23 +175,23 @@ function sendDeckCodeToOpener(code, { auto = false } = {}) {
   try {
     window.opener.postMessage(
       { type: DECK_CODE_MESSAGE_TYPE, code: trimmed },
-      bridgeState.parentOrigin,
+      bridgeTargetOrigin(),
     );
     if (deckBridgeStatus) {
-      deckBridgeStatus.classList.remove("hidden");
       deckBridgeStatus.textContent = auto
-        ? "大会画面へデッキコードを送りました。「大会画面に戻る」を押して登録を完了してください。"
+        ? "大会画面へデッキコードを送りました。下の「大会画面に戻る」を押してください。"
         : "大会画面へデッキコードを送りました。";
     }
     syncBridgeReturnButton({ ready: true });
-    focusTournamentOpener();
+    revealDeckExportUi();
+    // 自動で大会側へフォーカスすると戻るボタンが見えなくなるため、ユーザー操作に任せる
     return true;
   } catch (_) {
     if (deckBridgeStatus) {
-      deckBridgeStatus.classList.remove("hidden");
       deckBridgeStatus.textContent = "大会画面への送信に失敗しました。コードをコピーして貼り付けてください。";
     }
     syncBridgeReturnButton({ ready: true });
+    revealDeckExportUi();
     return false;
   }
 }
@@ -954,13 +989,12 @@ async function exportDeckCode() {
     }
 
     deckCodeOutput.value = data.code || "";
-    deckExportPanel.classList.remove("hidden");
+    revealDeckExportUi();
     syncBridgeSendButton();
     syncBridgeReturnButton({ ready: Boolean(data.code) });
     if (data.code) {
       const sent = sendDeckCodeToOpener(data.code, { auto: true });
-      if (!sent && bridgeState.bridge && deckBridgeStatus) {
-        deckBridgeStatus.classList.remove("hidden");
+      if (!sent && isBridgeSession() && deckBridgeStatus) {
         deckBridgeStatus.textContent =
           "コードをコピーしたら「大会画面に戻る」を押して、大会画面へ貼り付けてください。";
       }
@@ -986,10 +1020,10 @@ async function copyDeckCode() {
     deckCodeOutput.select();
     document.execCommand("copy");
   }
-  if (bridgeState.bridge) {
+  if (isBridgeSession()) {
     syncBridgeReturnButton({ ready: true });
+    revealDeckExportUi();
     if (deckBridgeStatus) {
-      deckBridgeStatus.classList.remove("hidden");
       deckBridgeStatus.textContent = canSendDeckCodeToOpener()
         ? "コピーしました。「大会画面に戻る」を押して登録を完了してください。"
         : "コピーしました。「大会画面に戻る」を押して、大会画面へ貼り付けてください。";
@@ -1293,11 +1327,11 @@ async function init() {
   await hydrateDeckMeta();
   renderDeck();
   syncBridgeSendButton();
-  if (bridgeState.bridge && deckBridgeStatus) {
-    deckBridgeStatus.classList.remove("hidden");
+  syncBridgeReturnButton();
+  if (isBridgeSession() && deckBridgeStatus) {
     deckBridgeStatus.textContent = canSendDeckCodeToOpener()
-      ? "大会画面から開かれています。「デッキコード表示」すると自動で大会画面へ送ります。"
-      : "大会画面から開かれましたが、元の画面との接続を確認できません。コードをコピーして貼り付けてください。";
+      ? "大会画面から開かれています。デッキ完成後に「デッキコード表示」→「大会画面に戻る」の順で進めてください。"
+      : "大会画面から開かれましたが、元の画面との接続を確認できません。コードをコピーして「大会画面に戻る」を押してください。";
   }
 }
 

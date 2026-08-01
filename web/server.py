@@ -472,8 +472,11 @@ class Handler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(ROOT), **kwargs)
 
     def end_headers(self) -> None:
-        if self.path.endswith((".html", ".js", ".css")):
-            self.send_header("Cache-Control", "no-cache")
+        # self.path に ?v= が付くと endswith(".js") が偽になるので query を除く
+        path_only = urlparse(self.path).path.lower()
+        if path_only.endswith((".html", ".js", ".css", ".webmanifest")):
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
         super().end_headers()
 
     def _request_path(self) -> str:
