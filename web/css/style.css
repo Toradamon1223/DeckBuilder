@@ -788,6 +788,21 @@ body {
   font-size: 0.9rem;
 }
 
+.deck-return-row {
+  margin-top: 0.65rem;
+}
+
+.deck-return-row.hidden {
+  display: none;
+}
+
+.deck-return-row .btn {
+  width: 100%;
+  min-height: 2.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
 .deck-count {
   font-weight: 700;
   font-size: 1.05rem;
